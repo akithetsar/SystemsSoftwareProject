@@ -99,10 +99,15 @@ cause {
   return CSR;
 }
 
-\"([^\"\n])*\"           {
-                            yylval.str = strdup(yytext);
-                            return STRING;
-                          }
+\"([^\"\n])*\"          {
+                          size_t len = yyleng - 2;  /* exclude opening and closing quotes */
+
+                          yylval.str = (char*)malloc(len + 1);
+                          memcpy(yylval.str, yytext + 1, len);
+                          yylval.str[len] = '\0';
+
+                          return STRING;
+                      }
 
 0[xX][0-9a-fA-F]+ {
     yylval.num = (int)strtol(yytext, NULL, 16);

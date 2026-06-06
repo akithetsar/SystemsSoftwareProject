@@ -85,11 +85,23 @@ directive:
             }
         |
         ASCII STRING
-            {printf(".ascii parsed\n");}
+            {
+                char* c = $2;
+                printf(".ascii parsed: %s\n", c);
+                while(*c != '\0'){
+                    section_emit_byte(*c);
+                    c++;
+                }
+                section_emit_byte(*c);
+
+            }
 
         |
         END
-            {printf(".end parsed\n");}
+            {
+                printf(".end parsed\n");
+                YYACCEPT;
+            }
     ;
 
 instruction:

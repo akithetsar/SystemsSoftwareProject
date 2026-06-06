@@ -1084,13 +1084,18 @@ case 49:
 YY_RULE_SETUP
 #line 102 "lexer.l"
 {
-                            yylval.str = strdup(yytext);
-                            return STRING;
-                          }
+                          size_t len = yyleng - 2;  /* exclude opening and closing quotes */
+
+                          yylval.str = (char*)malloc(len + 1);
+                          memcpy(yylval.str, yytext + 1, len);
+                          yylval.str[len] = '\0';
+
+                          return STRING;
+                      }
 	YY_BREAK
 case 50:
 YY_RULE_SETUP
-#line 107 "lexer.l"
+#line 112 "lexer.l"
 {
     yylval.num = (int)strtol(yytext, NULL, 16);
     return NUMBER;
@@ -1098,7 +1103,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 51:
 YY_RULE_SETUP
-#line 112 "lexer.l"
+#line 117 "lexer.l"
 {
                             yylval.num = atoi(yytext);
                             return NUMBER;
@@ -1106,7 +1111,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 52:
 YY_RULE_SETUP
-#line 117 "lexer.l"
+#line 122 "lexer.l"
 {
                             yylval.str = strdup(yytext);
                             return IDENT;
@@ -1114,21 +1119,21 @@ YY_RULE_SETUP
 	YY_BREAK
 case 53:
 YY_RULE_SETUP
-#line 122 "lexer.l"
+#line 127 "lexer.l"
 ;
 	YY_BREAK
 case 54:
 /* rule 54 can match eol */
 YY_RULE_SETUP
-#line 126 "lexer.l"
+#line 131 "lexer.l"
 { return EOL; };
 	YY_BREAK
 case 55:
 YY_RULE_SETUP
-#line 130 "lexer.l"
+#line 135 "lexer.l"
 ECHO;
 	YY_BREAK
-#line 1132 "build/lex.yy.c"
+#line 1137 "build/lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2133,5 +2138,5 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 130 "lexer.l"
+#line 135 "lexer.l"
 

@@ -563,12 +563,12 @@ static const yytype_int8 yytranslate[] =
 static const yytype_uint8 yyrline[] =
 {
        0,    30,    30,    33,    35,    39,    40,    44,    45,    46,
-      47,    48,    53,    60,    63,    66,    71,    77,    87,    91,
-      96,   101,   106,   111,   114,   117,   120,   123,   126,   129,
-     132,   135,   138,   141,   144,   147,   150,   153,   156,   159,
-     162,   165,   168,   171,   174,   177,   184,   184,   188,   188,
-     192,   192,   196,   196,   202,   204,   206,   208,   210,   212,
-     214,   216,   218,   220,   222,   224
+      47,    48,    53,    60,    63,    66,    71,    77,    87,   100,
+     108,   113,   118,   123,   126,   129,   132,   135,   138,   141,
+     144,   147,   150,   153,   156,   159,   162,   165,   168,   171,
+     174,   177,   180,   183,   186,   189,   196,   196,   200,   200,
+     204,   204,   208,   208,   214,   216,   218,   220,   222,   224,
+     226,   228,   230,   232,   234,   236
 };
 #endif
 
@@ -1526,186 +1526,198 @@ yyreduce:
 
   case 18:
 #line 88 "parser.y"
-            {printf(".ascii parsed\n");}
-#line 1531 "build/parser.tab.c"
+            {
+                char* c = (yyvsp[0].str);
+                printf(".ascii parsed: %s\n", c);
+                while(*c != '\0'){
+                    section_emit_byte(*c);
+                    c++;
+                }
+                section_emit_byte(*c);
+
+            }
+#line 1540 "build/parser.tab.c"
     break;
 
   case 19:
-#line 92 "parser.y"
-            {printf(".end parsed\n");}
-#line 1537 "build/parser.tab.c"
+#line 101 "parser.y"
+            {
+                printf(".end parsed\n");
+                YYACCEPT;
+            }
+#line 1549 "build/parser.tab.c"
     break;
 
   case 20:
-#line 97 "parser.y"
+#line 109 "parser.y"
         {printf("parsed halt\n");
             
         }
-#line 1545 "build/parser.tab.c"
+#line 1557 "build/parser.tab.c"
     break;
 
   case 21:
-#line 102 "parser.y"
+#line 114 "parser.y"
         {printf("parsed int\n");
             
         }
-#line 1553 "build/parser.tab.c"
+#line 1565 "build/parser.tab.c"
     break;
 
   case 22:
-#line 107 "parser.y"
+#line 119 "parser.y"
         {printf("parsed iret\n");
             
         }
-#line 1561 "build/parser.tab.c"
-    break;
-
-  case 23:
-#line 112 "parser.y"
-        {printf("parsed call\n");}
-#line 1567 "build/parser.tab.c"
-    break;
-
-  case 24:
-#line 115 "parser.y"
-        {printf("parsed ret\n");}
 #line 1573 "build/parser.tab.c"
     break;
 
-  case 25:
-#line 118 "parser.y"
-        {printf("parsed jmp\n");}
+  case 23:
+#line 124 "parser.y"
+        {printf("parsed call\n");}
 #line 1579 "build/parser.tab.c"
     break;
 
-  case 26:
-#line 121 "parser.y"
-        {printf("parsed beq\n");}
+  case 24:
+#line 127 "parser.y"
+        {printf("parsed ret\n");}
 #line 1585 "build/parser.tab.c"
     break;
 
-  case 27:
-#line 124 "parser.y"
-        {printf("parsed bne\n");}
+  case 25:
+#line 130 "parser.y"
+        {printf("parsed jmp\n");}
 #line 1591 "build/parser.tab.c"
     break;
 
-  case 28:
-#line 127 "parser.y"
-        {printf("parsed bgt\n");}
+  case 26:
+#line 133 "parser.y"
+        {printf("parsed beq\n");}
 #line 1597 "build/parser.tab.c"
     break;
 
-  case 29:
-#line 130 "parser.y"
-        {printf("parsed push\n");}
+  case 27:
+#line 136 "parser.y"
+        {printf("parsed bne\n");}
 #line 1603 "build/parser.tab.c"
     break;
 
-  case 30:
-#line 133 "parser.y"
-        {printf("parsed pop\n");}
+  case 28:
+#line 139 "parser.y"
+        {printf("parsed bgt\n");}
 #line 1609 "build/parser.tab.c"
     break;
 
-  case 31:
-#line 136 "parser.y"
-        {printf("parsed xchg\n");}
+  case 29:
+#line 142 "parser.y"
+        {printf("parsed push\n");}
 #line 1615 "build/parser.tab.c"
     break;
 
-  case 32:
-#line 139 "parser.y"
-        {printf("parsed add\n");}
+  case 30:
+#line 145 "parser.y"
+        {printf("parsed pop\n");}
 #line 1621 "build/parser.tab.c"
     break;
 
-  case 33:
-#line 142 "parser.y"
-        {printf("parsed sub\n");}
+  case 31:
+#line 148 "parser.y"
+        {printf("parsed xchg\n");}
 #line 1627 "build/parser.tab.c"
     break;
 
-  case 34:
-#line 145 "parser.y"
-        {printf("parsed mul\n");}
+  case 32:
+#line 151 "parser.y"
+        {printf("parsed add\n");}
 #line 1633 "build/parser.tab.c"
     break;
 
-  case 35:
-#line 148 "parser.y"
-        {printf("parsed div\n");}
+  case 33:
+#line 154 "parser.y"
+        {printf("parsed sub\n");}
 #line 1639 "build/parser.tab.c"
     break;
 
-  case 36:
-#line 151 "parser.y"
-        {printf("parsed not\n");}
+  case 34:
+#line 157 "parser.y"
+        {printf("parsed mul\n");}
 #line 1645 "build/parser.tab.c"
     break;
 
-  case 37:
-#line 154 "parser.y"
-        {printf("parsed and\n");}
+  case 35:
+#line 160 "parser.y"
+        {printf("parsed div\n");}
 #line 1651 "build/parser.tab.c"
     break;
 
-  case 38:
-#line 157 "parser.y"
-        {printf("parsed or\n");}
+  case 36:
+#line 163 "parser.y"
+        {printf("parsed not\n");}
 #line 1657 "build/parser.tab.c"
     break;
 
-  case 39:
-#line 160 "parser.y"
-        {printf("parsed xor\n");}
+  case 37:
+#line 166 "parser.y"
+        {printf("parsed and\n");}
 #line 1663 "build/parser.tab.c"
     break;
 
-  case 40:
-#line 163 "parser.y"
-        {printf("parsed shl\n");}
+  case 38:
+#line 169 "parser.y"
+        {printf("parsed or\n");}
 #line 1669 "build/parser.tab.c"
     break;
 
-  case 41:
-#line 166 "parser.y"
-        {printf("parsed shr\n");}
+  case 39:
+#line 172 "parser.y"
+        {printf("parsed xor\n");}
 #line 1675 "build/parser.tab.c"
     break;
 
-  case 42:
-#line 169 "parser.y"
-        {printf("parsed ld\n");}
+  case 40:
+#line 175 "parser.y"
+        {printf("parsed shl\n");}
 #line 1681 "build/parser.tab.c"
     break;
 
-  case 43:
-#line 172 "parser.y"
-        {printf("parsed st\n");}
+  case 41:
+#line 178 "parser.y"
+        {printf("parsed shr\n");}
 #line 1687 "build/parser.tab.c"
     break;
 
-  case 44:
-#line 175 "parser.y"
-        {printf("parsed csrrd\n");}
+  case 42:
+#line 181 "parser.y"
+        {printf("parsed ld\n");}
 #line 1693 "build/parser.tab.c"
     break;
 
-  case 45:
-#line 178 "parser.y"
-        {printf("parsed csrwr\n");}
+  case 43:
+#line 184 "parser.y"
+        {printf("parsed st\n");}
 #line 1699 "build/parser.tab.c"
     break;
 
-  case 49:
-#line 188 "parser.y"
-                       {section_emit_word((yyvsp[0].num));}
+  case 44:
+#line 187 "parser.y"
+        {printf("parsed csrrd\n");}
 #line 1705 "build/parser.tab.c"
     break;
 
+  case 45:
+#line 190 "parser.y"
+        {printf("parsed csrwr\n");}
+#line 1711 "build/parser.tab.c"
+    break;
 
-#line 1709 "build/parser.tab.c"
+  case 49:
+#line 200 "parser.y"
+                       {section_emit_word((yyvsp[0].num));}
+#line 1717 "build/parser.tab.c"
+    break;
+
+
+#line 1721 "build/parser.tab.c"
 
       default: break;
     }
@@ -1937,7 +1949,7 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 227 "parser.y"
+#line 239 "parser.y"
 
 
 void yyerror(const char *s)

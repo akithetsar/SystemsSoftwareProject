@@ -200,8 +200,8 @@ int main(int argc, char **argv)
     printf("Assembler initialized\n");
     printf("locationCounter=%i\n", locationCounter);
 
-    yyparse();
-
+    int code = yyparse();
+    printf("Parsing finished with code: %i\n", code);
     write_output_file(out);
     print_sections_debug();
     return 0;
