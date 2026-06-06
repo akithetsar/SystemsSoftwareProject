@@ -4,9 +4,11 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+
 extern int locationCounter;
 
 int init_assembler();
+int write_output_file(const char *filename);
 
 /* ---------------- Output buffer ---------------- */
 
@@ -18,15 +20,21 @@ typedef struct {
 
 extern OutputContent outputContent;
 
+void emit_byte(uint8_t byte);
+
 /* ---------------- Sections ---------------- */
 
 typedef struct {
     char *name;
-    uint32_t base;
+    uint8_t *data;
     uint32_t length;
 } SectionDefinition;
 
-extern SectionDefinition **sectionDefinitions;
-extern SectionDefinition *currentSection;
+extern SectionDefinition *sectionDefinitions;
+extern int currentSection;
+extern int sectionCount;
 
+void switch_section(const char *name);
+void section_emit_byte(uint8_t byte);
+void section_emit_word(uint32_t value);
 #endif

@@ -64,13 +64,20 @@ directive:
             {printf(".extern parsed\n");}
         | 
         SECTION IDENT
-            {printf(".section parsed\n");}
+            {printf(".section parsed\n");
+                switch_section($2);            
+            }
         |
-        WORD init_list
-            {printf(".word parsed\n");}
+        WORD init_list_word
+            {
+                printf(".word parsed\n");
+
+            }
         |
         SKIP NUMBER
-            {printf(".skip parsed\n");}
+            {
+                printf(".skip parsed\n");
+            }
         |
         ASCII STRING
             {printf(".ascii parsed\n");}
@@ -82,13 +89,19 @@ directive:
 
 instruction:
         HALT
-        {printf("parsed halt\n");}
+        {printf("parsed halt\n");
+            
+        }
         |
         INT
-        {printf("parsed int\n");}
+        {printf("parsed int\n");
+            
+        }
         |
         IRET
-        {printf("parsed iret\n");}
+        {printf("parsed iret\n");
+            
+        }
         |
         CALL item
         {printf("parsed call\n");}
@@ -166,13 +179,19 @@ symbol_list:
         IDENT | symbol_list COMMA IDENT
     ;
 
-item:
-        IDENT | NUMBER
+item_word:
+        IDENT | NUMBER {section_emit_word($1);}
     ;
 
-init_list:
-        item | init_list COMMA item
+item:
+    IDENT | NUMBER
+;
+
+init_list_word:
+        item_word | init_list_word COMMA item_word
     ;
+
+
 
 operand:
         DOLLAR NUMBER
@@ -207,10 +226,3 @@ void yyerror(const char *s)
     printf("Error: %s\n", s);
 }
 
-int main()
-{
-    init_assembler();
-    printf("Assembler initialized\n");
-    printf("locationCounter=%i\n", locationCounter);
-    return yyparse();
-}

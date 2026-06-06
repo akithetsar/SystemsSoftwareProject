@@ -10,6 +10,7 @@
 
 .section text
 
+iret
 label_only:
 
 another_label:
@@ -19,6 +20,8 @@ data_label: .word 1
 
 .section data
 
+
+iret
 .word 0 
 .word 1, 2, 3
 .word 0x10, 0x20, 0x30
@@ -43,6 +46,9 @@ data_label: .word 1
 
 halt
 int
+iret
+iret
+iret
 iret
 ret
 
