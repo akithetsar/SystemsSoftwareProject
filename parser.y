@@ -77,6 +77,11 @@ directive:
         SKIP NUMBER
             {
                 printf(".skip parsed\n");
+                int n = $2;
+                int i;
+                for(i = 0; i < n; ++i){
+                    section_emit_byte(0x00);
+                }
             }
         |
         ASCII STRING
