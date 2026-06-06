@@ -36,15 +36,7 @@ void emit_byte(uint8_t byte) {
     outputContent.data[outputContent.size++] = byte;
 }
 
-void emit_word(uint32_t value) {
-    ensure_capacity(outputContent.size + 4);
 
-    /* little-endian */
-    outputContent.data[outputContent.size++] = (value >> 0) & 0xFF;
-    outputContent.data[outputContent.size++] = (value >> 8) & 0xFF;
-    outputContent.data[outputContent.size++] = (value >> 16) & 0xFF;
-    outputContent.data[outputContent.size++] = (value >> 24) & 0xFF;
-}
 
 
 
