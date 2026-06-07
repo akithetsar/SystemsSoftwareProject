@@ -1,5 +1,6 @@
 {
   "files.associations": {
-    "assembler.h": "c"
+    "assembler.h": "c",
+    "typeinfo": "c"
   }
 }

@@ -36,5 +36,59 @@ extern int sectionCount;
 
 void switch_section(const char *name);
 void section_emit_byte(uint8_t byte);
+uint8_t get_section_byte(int section, uint32_t address);
 void section_emit_word(uint32_t value);
+uint32_t get_section_word(int section, uint32_t address);
+int find_section(const char *name);
+
+
+/* ---------------- Symbol Table ---------------- */
+
+typedef enum {
+    SYM_NOTYP,
+    SYM_SCTN
+} SymbolType;
+
+typedef enum {
+    SYM_LOC,
+    SYM_GLOB
+} SymbolBind;
+
+typedef struct ST_ForwardRefs{
+    uint32_t adress; // adress in section
+    int section;
+    struct ST_ForwardRefs *nlink;
+} ST_ForwardRefs;
+
+typedef struct {
+    int num;
+    uint32_t value;
+    uint32_t size;
+    SymbolType type;
+    SymbolBind bind;
+    int ndx; // -1 for UND
+    char *name;
+    int defined;
+    ST_ForwardRefs *flink;
+} Symbol;
+
+extern Symbol *symbolTable;
+extern int symbolCount;
+extern int symbolCapacity;
+
+Symbol* get_symbol(const char *name);
+int add_symbol(
+    const char *name,
+    uint32_t value,
+    int ndx,
+    SymbolType type,
+    SymbolBind bind,
+    int defined
+);
+int find_symbol(const char *name);
+const char* get_symbols_section_name(const char *name);
+void add_flink(Symbol* sym);
+void backpatch(Symbol* sym);
+
+
 #endif

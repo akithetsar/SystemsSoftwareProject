@@ -8,18 +8,25 @@
 .extern ext1 
 .extern ext2, ext3, ext4
 
-.section text
 
-iret
+
+.section .text
+
+p:
+.skip 9
+q:
+.word testSymbol
+testSymbol:
+    .word 0xEEFABDCF
 label_only:
 
 another_label:
+
+
+data_label: .skip 15
 third_label:
-
-data_label: .word 1
-
-.section data
-
+.word 2
+.section .data
 
 iret
 .word 0 
@@ -28,7 +35,8 @@ iret
 .word sym1
 .word sym1, sym2, sym3
 .word 1, sym1, 2, sym2
-
+.word testSymbol
+post:
 .skip 0
 .skip 4
 .skip 16
@@ -38,12 +46,12 @@ iret
 .ascii "Hello"
 .ascii "Assembler test 123"
 
-.section text
+.section .text
 
 # =========================================================
 # NO OPERAND INSTRUCTIONS
 # =========================================================
-
+sym2:
 halt
 int
 iret
@@ -99,7 +107,7 @@ xchg %r1, %r2
 xchg %r14, %r15
 xchg %sp, %pc
 .ascii "text"
-.end
+
 # =========================================================
 # ARITHMETIC
 # =========================================================

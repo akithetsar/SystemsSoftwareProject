@@ -53,6 +53,27 @@ label:
     IDENT COLON
     {
         printf("label: %s\n", $1);
+        SectionDefinition *sec = &sectionDefinitions[currentSection];
+        int ndx = find_symbol(sec->name);
+        Symbol* sym = get_symbol($1);
+        if(sym == NULL){
+            add_symbol($1, sec->length, ndx, SYM_NOTYP, SYM_LOC, 1);
+        }
+        else{
+            if(sym->defined == 1){
+                printf("Parsing Error: Defined two same symbols with the name: %s\n", $1);
+                YYABORT;
+
+            }
+            else{
+                sym->value = sec->length;
+                sym->ndx = find_symbol(sectionDefinitions[currentSection].name);
+                sym->defined = 1;
+                backpatch(sym);
+            }
+        }
+        
+
         free($1);
     }
 ; 
@@ -64,7 +85,7 @@ directive:
             {printf(".extern parsed\n");}
         | 
         SECTION IDENT
-            {printf(".section parsed\n");
+            {printf(".section parsed: %s\n", $2);
                 switch_section($2);            
             }
         |
@@ -93,7 +114,7 @@ directive:
                     c++;
                 }
                 section_emit_byte(*c);
-
+                
             }
 
         |
@@ -193,11 +214,34 @@ instruction:
 
 
 symbol_list:
-        IDENT | symbol_list COMMA IDENT
+        IDENT
+        | symbol_list COMMA IDENT
     ;
 
 item_word:
-        IDENT | NUMBER {section_emit_word($1);}
+        IDENT 
+            {
+                Symbol *sym = get_symbol($1);
+                if(sym != NULL){
+                    //Symbol in table, symbol defined
+                    if(sym->defined == 1){
+                        printf("Emit section word with symbol: %s\n", $1);
+                        section_emit_word(sym->value);
+                    }
+                    else if (sym->defined == 0){
+                        add_flink(sym);
+                        section_emit_word(0x00000000);
+                    }
+                }
+                else{
+                    //Symbol not in table
+                    add_symbol($1, 0xFFFFFFFF, -1, SYM_NOTYP, SYM_LOC, 0);
+                    add_flink(get_symbol($1));
+                    section_emit_word(0x00000000);
+                }
+                
+            } 
+        | NUMBER {section_emit_word($1);}
     ;
 
 item:
