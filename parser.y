@@ -81,7 +81,7 @@ directive:
         GLOBAL symbol_list_glob
             {printf(".global parsed\n");}
         |
-        EXTERN symbol_list
+        EXTERN symbol_list_extern
             {printf(".extern parsed\n");}
         | 
         SECTION IDENT
@@ -127,13 +127,15 @@ directive:
 
 instruction:
         HALT
-        {printf("parsed halt\n");
-            
+        {
+            printf("parsed halt\n");
+            section_emit_word(0x00000000);
         }
         |
         INT
-        {printf("parsed int\n");
-            
+        {
+            printf("parsed int\n");
+            section_emit_word(0x10000000);
         }
         |
         IRET
@@ -218,6 +220,27 @@ symbol_list:
         | symbol_list COMMA IDENT
     ;
 
+symbol_list_extern:
+        item_extern
+        | symbol_list_extern COMMA item_extern
+    ;
+
+item_extern:
+    IDENT
+        {
+            Symbol *sym = get_symbol($1);
+                if(sym != NULL){
+                    //Symbol in table
+                    printf("Turn to extern symbol: %s\n", $1);
+                    sym->bind = SYM_GLOB; 
+                }
+                else{
+                    //Symbol not in table
+                    add_symbol($1, 0xFFFFFFFF, -1, SYM_NOTYP, SYM_GLOB, 0);
+                }
+        }
+
+
 symbol_list_glob:
         item_glob
         | symbol_list_glob COMMA item_glob
@@ -234,8 +257,6 @@ item_glob:
                 else{
                     //Symbol not in table
                     add_symbol($1, 0xFFFFFFFF, -1, SYM_NOTYP, SYM_GLOB, 0);
-                    //add_flink(get_symbol($1));
-                
                 }
         }
 
