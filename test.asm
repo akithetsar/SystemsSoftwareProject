@@ -2,8 +2,8 @@
 # DIRECTIVES
 # =========================================================
 
-.global start
-.global sym1, sym2, sym3
+.global start, testSymbol
+.global sym1, sym2, sym3, DATAGLOB
 
 .extern ext1 
 .extern ext2, ext3, ext4
@@ -28,6 +28,7 @@ third_label:
 .word 2
 .section .data
 
+DATAGLOB:
 iret
 .word 0 
 .word 1, 2, 3
@@ -230,6 +231,6 @@ symbol_dest:
 
 halt
 add %r1, %r2
-.word 123
+
 .end
 

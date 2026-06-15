@@ -24,10 +24,6 @@ Symbol *symbolTable = NULL;
 int symbolCount = 0;
 int symbolCapacity = 0;
 
-int relocCount = 0;
-int relocCapacity = 0;
-
-Relocation *relocationTable = NULL;
 
 int add_symbol(
     const char *name,
@@ -82,6 +78,10 @@ int create_section(const char *name) {
     sectionDefinitions[idx].name = strdup(name);
     sectionDefinitions[idx].data = NULL;
     sectionDefinitions[idx].length = 0;
+
+    sectionDefinitions[idx].relocCount = 0;
+    sectionDefinitions[idx].relocCapacity = 16;
+    sectionDefinitions[idx].relocs = (Relocation*)calloc(16, sizeof(Relocation));
     add_symbol(name, 0x00000000, symbolCount, SYM_SCTN, SYM_LOC, 1);
     return idx;
 }
@@ -457,27 +457,16 @@ void print_symbol_table()
    RELOCATIONS
    ========================= */
 
-static void ensure_reloc_capacity()
+static void ensure_reloc_capacity(SectionDefinition *sec)
 {
-    if (relocCount < relocCapacity)
+    if (sec->relocCount < sec->relocCapacity)
         return;
 
-    relocCapacity *= 2;
+    sec->relocCapacity *= 2;
 
-    relocationTable = (Relocation*)realloc(
-        relocationTable,
-        relocCapacity * sizeof(Relocation)
-    );
-}
-
-void init_relocations()
-{
-    relocCount = 0;
-    relocCapacity = 64;
-
-    relocationTable = (Relocation*)calloc(
-        relocCapacity,
-        sizeof(Relocation)
+    sec->relocs = (Relocation*)realloc(
+        sec->relocs,
+        sec->relocCapacity * sizeof(Relocation)
     );
 }
 
@@ -488,11 +477,14 @@ void add_relocation(
     RelocationType type
 )
 {
-    ensure_reloc_capacity();
+    SectionDefinition *sec =
+        &sectionDefinitions[section];
 
-    Relocation *rel = &relocationTable[relocCount++];
+    ensure_reloc_capacity(sec);
 
-    rel->section = section;
+    Relocation *rel =
+        &sec->relocs[sec->relocCount++];
+
     rel->offset = offset;
     rel->symbolIndex = symbolIndex;
     rel->type = type;
@@ -512,38 +504,30 @@ static const char* relocation_type_to_string(RelocationType type)
 
 void print_relocation_table()
 {
-    printf("\n#.reltab\n");
-
-    printf("%-10s %-10s %-10s %-10s\n",
-           "Section",
-           "Offset",
-           "Type",
-           "Symbol");
-
-    for(int i = 0; i < relocCount; i++)
+    for (int s = 0; s < sectionCount; s++)
     {
-        Relocation *rel = &relocationTable[i];
+        SectionDefinition *sec =
+            &sectionDefinitions[s];
 
-        printf("%-10d %08X %-10s ",
-               rel->section,
-               rel->offset,
-               relocation_type_to_string(rel->type));
+        printf("\n#.rela%s\n", sec->name);
 
-        if(rel->symbolIndex >= 0 &&
-           rel->symbolIndex < symbolCount)
+        printf("%-10s %-10s %-10s %-10s\n",
+               "Offset",
+               "Type",
+               "Symbol",
+               "SymbolNdx");
+
+        for (int i = 0; i < sec->relocCount; i++)
         {
-            printf("%s",
-                   symbolTable[rel->symbolIndex].name);
-        }
-        else
-        {
-            printf("INVALID");
-        }
+            Relocation *rel =
+                &sec->relocs[i];
 
-        printf("\n");
+            printf("%08X %-10s %-10s %-10i\n",
+                   rel->offset,
+                   relocation_type_to_string(rel->type),
+                   symbolTable[rel->symbolIndex].name, rel->symbolIndex);
+        }
     }
-
-    printf("\n");
 }
 
 
@@ -591,7 +575,6 @@ int main(int argc, char **argv)
     init_assembler();
     init_sections();
     init_symbol_table();
-    init_relocations();
 
     printf("Assembler initialized\n");
     printf("locationCounter=%i\n", locationCounter);

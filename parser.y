@@ -78,7 +78,7 @@ label:
     }
 ; 
 directive:
-        GLOBAL symbol_list
+        GLOBAL symbol_list_glob
             {printf(".global parsed\n");}
         |
         EXTERN symbol_list
@@ -218,18 +218,41 @@ symbol_list:
         | symbol_list COMMA IDENT
     ;
 
+symbol_list_glob:
+        item_glob
+        | symbol_list_glob COMMA item_glob
+    ;
+item_glob:
+    IDENT
+        {
+            Symbol *sym = get_symbol($1);
+                if(sym != NULL){
+                    //Symbol in table
+                    printf("Turn global symbol: %s\n", $1);
+                    sym->bind = SYM_GLOB; 
+                }
+                else{
+                    //Symbol not in table
+                    add_symbol($1, 0xFFFFFFFF, -1, SYM_NOTYP, SYM_GLOB, 0);
+                    //add_flink(get_symbol($1));
+                
+                }
+        }
+
 item_word:
         IDENT 
             {
                 //for backpatch
                 Symbol *sym = get_symbol($1);
                 if(sym != NULL){
-                    //Symbol in table, symbol defined
+                    //Symbol in table
                     if(sym->defined == 1){
+                        //symbol defined
                         printf("Emit section word with symbol: %s\n", $1);
                         section_emit_word(sym->value);
                     }
                     else if (sym->defined == 0){
+                        //symbol undefined
                         add_flink(sym);
                         section_emit_word(0x00000000);
                     }

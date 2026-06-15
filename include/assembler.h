@@ -23,11 +23,37 @@ extern OutputContent outputContent;
 void emit_byte(uint8_t byte);
 
 /* ---------------- Sections ---------------- */
+// REALLOCATIONS
+
+typedef enum {
+    ABS32
+} RelocationType;
+
+typedef struct Relocation {
+    uint32_t offset;
+    int symbolIndex;
+    RelocationType type;
+} Relocation;
+
+void init_relocations();
+
+void add_relocation(
+    int section,
+    uint32_t offset,
+    int symbolIndex,
+    RelocationType type
+);
+
+void print_relocation_table();
 
 typedef struct {
     char *name;
     uint8_t *data;
     uint32_t length;
+    
+    Relocation *relocs;
+    int relocCount;
+    int relocCapacity;
 } SectionDefinition;
 
 extern SectionDefinition *sectionDefinitions;
@@ -91,32 +117,6 @@ void add_flink(Symbol* sym);
 void backpatch(Symbol* sym);
 
 
-// REALLOCATIONS
 
-typedef enum {
-    ABS32
-} RelocationType;
-
-typedef struct Relocation {
-    int section;
-    uint32_t offset;
-    int symbolIndex;
-    RelocationType type;
-} Relocation;
-
-extern Relocation *relocationTable;
-extern int relocCount;
-extern int relocCapacity;
-
-void init_relocations();
-
-void add_relocation(
-    int section,
-    uint32_t offset,
-    int symbolIndex,
-    RelocationType type
-);
-
-void print_relocation_table();
 
 #endif
