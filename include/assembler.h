@@ -91,4 +91,32 @@ void add_flink(Symbol* sym);
 void backpatch(Symbol* sym);
 
 
+// REALLOCATIONS
+
+typedef enum {
+    ABS32
+} RelocationType;
+
+typedef struct Relocation {
+    int section;
+    uint32_t offset;
+    int symbolIndex;
+    RelocationType type;
+} Relocation;
+
+extern Relocation *relocationTable;
+extern int relocCount;
+extern int relocCapacity;
+
+void init_relocations();
+
+void add_relocation(
+    int section,
+    uint32_t offset,
+    int symbolIndex,
+    RelocationType type
+);
+
+void print_relocation_table();
+
 #endif

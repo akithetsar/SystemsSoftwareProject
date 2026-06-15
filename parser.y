@@ -221,6 +221,7 @@ symbol_list:
 item_word:
         IDENT 
             {
+                //for backpatch
                 Symbol *sym = get_symbol($1);
                 if(sym != NULL){
                     //Symbol in table, symbol defined
@@ -239,7 +240,18 @@ item_word:
                     add_flink(get_symbol($1));
                     section_emit_word(0x00000000);
                 }
+                //for reloc
+                sym = get_symbol($1);
+
+                uint32_t patchOffset = sectionDefinitions[currentSection].length - 4;
                 
+
+                add_relocation(
+                    currentSection,
+                    patchOffset,
+                    sym->num,
+                    ABS32
+                );
             } 
         | NUMBER {section_emit_word($1);}
     ;

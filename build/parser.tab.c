@@ -566,9 +566,9 @@ static const yytype_int16 yyrline[] =
       47,    48,    53,    81,    84,    87,    92,    98,   108,   121,
      129,   134,   139,   144,   147,   150,   153,   156,   159,   162,
      165,   168,   171,   174,   177,   180,   183,   186,   189,   192,
-     195,   198,   201,   204,   207,   210,   217,   218,   222,   244,
-     248,   248,   252,   252,   258,   260,   262,   264,   266,   268,
-     270,   272,   274,   276,   278,   280
+     195,   198,   201,   204,   207,   210,   217,   218,   222,   256,
+     260,   260,   264,   264,   270,   272,   274,   276,   278,   280,
+     282,   284,   286,   288,   290,   292
 };
 #endif
 
@@ -1734,6 +1734,7 @@ yyreduce:
   case 48:
 #line 223 "parser.y"
             {
+                //for backpatch
                 Symbol *sym = get_symbol((yyvsp[0].str));
                 if(sym != NULL){
                     //Symbol in table, symbol defined
@@ -1752,19 +1753,30 @@ yyreduce:
                     add_flink(get_symbol((yyvsp[0].str)));
                     section_emit_word(0x00000000);
                 }
+                //for reloc
+                sym = get_symbol((yyvsp[0].str));
+
+                uint32_t patchOffset = sectionDefinitions[currentSection].length - 4;
                 
+
+                add_relocation(
+                    currentSection,
+                    patchOffset,
+                    sym->num,
+                    ABS32
+                );
             }
-#line 1758 "build/parser.tab.c"
+#line 1770 "build/parser.tab.c"
     break;
 
   case 49:
-#line 244 "parser.y"
+#line 256 "parser.y"
                  {section_emit_word((yyvsp[0].num));}
-#line 1764 "build/parser.tab.c"
+#line 1776 "build/parser.tab.c"
     break;
 
 
-#line 1768 "build/parser.tab.c"
+#line 1780 "build/parser.tab.c"
 
       default: break;
     }
@@ -1996,7 +2008,7 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 283 "parser.y"
+#line 295 "parser.y"
 
 
 void yyerror(const char *s)

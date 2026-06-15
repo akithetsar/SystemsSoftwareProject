@@ -24,6 +24,11 @@ Symbol *symbolTable = NULL;
 int symbolCount = 0;
 int symbolCapacity = 0;
 
+int relocCount = 0;
+int relocCapacity = 0;
+
+Relocation *relocationTable = NULL;
+
 int add_symbol(
     const char *name,
     uint32_t value,
@@ -64,6 +69,7 @@ void init_sections() {
 }
 int find_section(const char *name) {
     for (int i = 0; i < sectionCount; i++) {
+        
         if (strcmp(sectionDefinitions[i].name, name) == 0) {
             return i;
         }
@@ -445,6 +451,102 @@ void print_symbol_table()
 
     printf("\n");
 }
+
+
+/* =========================
+   RELOCATIONS
+   ========================= */
+
+static void ensure_reloc_capacity()
+{
+    if (relocCount < relocCapacity)
+        return;
+
+    relocCapacity *= 2;
+
+    relocationTable = (Relocation*)realloc(
+        relocationTable,
+        relocCapacity * sizeof(Relocation)
+    );
+}
+
+void init_relocations()
+{
+    relocCount = 0;
+    relocCapacity = 64;
+
+    relocationTable = (Relocation*)calloc(
+        relocCapacity,
+        sizeof(Relocation)
+    );
+}
+
+void add_relocation(
+    int section,
+    uint32_t offset,
+    int symbolIndex,
+    RelocationType type
+)
+{
+    ensure_reloc_capacity();
+
+    Relocation *rel = &relocationTable[relocCount++];
+
+    rel->section = section;
+    rel->offset = offset;
+    rel->symbolIndex = symbolIndex;
+    rel->type = type;
+}
+
+static const char* relocation_type_to_string(RelocationType type)
+{
+    switch(type)
+    {
+        case ABS32:
+            return "ABS32";
+
+        default:
+            return "???";
+    }
+}
+
+void print_relocation_table()
+{
+    printf("\n#.reltab\n");
+
+    printf("%-10s %-10s %-10s %-10s\n",
+           "Section",
+           "Offset",
+           "Type",
+           "Symbol");
+
+    for(int i = 0; i < relocCount; i++)
+    {
+        Relocation *rel = &relocationTable[i];
+
+        printf("%-10d %08X %-10s ",
+               rel->section,
+               rel->offset,
+               relocation_type_to_string(rel->type));
+
+        if(rel->symbolIndex >= 0 &&
+           rel->symbolIndex < symbolCount)
+        {
+            printf("%s",
+                   symbolTable[rel->symbolIndex].name);
+        }
+        else
+        {
+            printf("INVALID");
+        }
+
+        printf("\n");
+    }
+
+    printf("\n");
+}
+
+
 /* =========================
    INIT
    ========================= */
@@ -489,6 +591,8 @@ int main(int argc, char **argv)
     init_assembler();
     init_sections();
     init_symbol_table();
+    init_relocations();
+
     printf("Assembler initialized\n");
     printf("locationCounter=%i\n", locationCounter);
 
@@ -501,6 +605,7 @@ int main(int argc, char **argv)
     write_output_file(out);
     print_sections_debug();
     print_symbol_table();
+    print_relocation_table();
     return 0;
 }
 
