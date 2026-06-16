@@ -18,12 +18,12 @@ void yyerror(const char *s);
 %token PUSH POP XCHG ADD SUB MUL DIV NOT
 %token AND OR XOR SHL SHR LD ST
 %token CSRRD CSRWR
-%token GPR CSR
 %token COMMA COLON LBRACKET RBRACKET PLUS
 %token DOLLAR EOL PERCENT
 %token <num> NUMBER
 %token <str> IDENT STRING
-
+%token <num> GPR
+%token <num> CSR
 %%
 
 program:
@@ -139,15 +139,25 @@ instruction:
         }
         |
         IRET
-        {printf("parsed iret\n");
-            
+        {
+            printf("parsed iret\n");
+            uint32_t instruction = form_pop_instruction(15); // pop pc
+            section_emit_word(instruction);
+            instruction = form_pop_csr_instruction(0); // pop status
+            section_emit_word(instruction);
         }
         |
         CALL item
-        {printf("parsed call\n");}
+        {printf("parsed call\n");
+        
+        }
         |
         RET
-        {printf("parsed ret\n");}
+        {
+            printf("parsed ret\n");
+            uint32_t instruction = form_pop_instruction(15);
+            section_emit_word(instruction);
+        }
         |
         JMP item
         {printf("parsed jmp\n");}
@@ -162,43 +172,98 @@ instruction:
         {printf("parsed bgt\n");}
         |
         PUSH PERCENT GPR
-        {printf("parsed push\n");}
+        {
+            printf("parsed push\n");
+            uint32_t instruction = form_push_instruction($3);
+            section_emit_word(instruction);
+        }
         |
         POP PERCENT GPR
-        {printf("parsed pop\n");}
+        {
+            printf("parsed pop\n");
+            uint32_t instruction = form_pop_instruction($3);
+            section_emit_word(instruction);
+        }
         |
         XCHG PERCENT GPR COMMA PERCENT GPR
-        {printf("parsed xchg\n");}
+        {
+            printf("parsed xchg\n");
+            section_emit_word(
+                (0x4u << 28) |
+                (($6 & 0xF) << 16) |
+                (($3 & 0xF) << 12)
+            );
+        }
         |
         ADD PERCENT GPR COMMA PERCENT GPR
-        {printf("parsed add\n");}
+        {
+            printf("parsed add\n");
+            uint32_t instruction = form_arithmetic_instruction(ARITH_ADD, $6, $3, $6);
+            section_emit_word(instruction);
+        }
         |
         SUB PERCENT GPR COMMA PERCENT GPR
-        {printf("parsed sub\n");}
+        {
+            printf("parsed sub\n");
+            uint32_t instruction = form_arithmetic_instruction(ARITH_SUB, $6, $6, $3);
+            section_emit_word(instruction);
+        }
         |
         MUL PERCENT GPR COMMA PERCENT GPR
-        {printf("parsed mul\n");}
+        {
+            printf("parsed mul\n");
+            uint32_t instruction = form_arithmetic_instruction(ARITH_MUL, $6, $6, $3);
+            section_emit_word(instruction);
+        }
         |
         DIV PERCENT GPR COMMA PERCENT GPR
-        {printf("parsed div\n");}
+        {
+            printf("parsed div\n");
+            uint32_t instruction = form_arithmetic_instruction(ARITH_DIV, $6, $6, $3);
+            section_emit_word(instruction);
+        }
         |
         NOT PERCENT GPR
-        {printf("parsed not\n");}
+        {
+            printf("parsed not\n");
+            uint32_t instruction = form_logic_instruction(LOGIC_NOT, $3, $3, 0);
+            section_emit_word(instruction);
+        }
         |
         AND PERCENT GPR COMMA PERCENT GPR
-        {printf("parsed and\n");}
+        {
+            printf("parsed and\n");
+            uint32_t instruction = form_logic_instruction(LOGIC_AND, $6, $6, $3);
+            section_emit_word(instruction);
+        }
         |
         OR PERCENT GPR COMMA PERCENT GPR
-        {printf("parsed or\n");}
+        {
+            printf("parsed or\n");
+            uint32_t instruction = form_logic_instruction(LOGIC_OR, $6, $6, $3);
+            section_emit_word(instruction);
+        }
         |
         XOR PERCENT GPR COMMA PERCENT GPR
-        {printf("parsed xor\n");}
+        {
+            printf("parsed xor\n");
+            uint32_t instruction = form_logic_instruction(LOGIC_XOR, $6, $6, $3);
+            section_emit_word(instruction);
+        }
         |
         SHL PERCENT GPR COMMA PERCENT GPR
-        {printf("parsed shl\n");}
+        {
+            printf("parsed shl\n");
+            uint32_t instruction = form_shift_instruction(SHIFT_LEFT, $6, $6, $3);
+            section_emit_word(instruction);
+        }
         |
         SHR PERCENT GPR COMMA PERCENT GPR
-        {printf("parsed shr\n");}
+        {
+            printf("parsed shr\n");
+            uint32_t instruction = form_shift_instruction(SHIFT_RIGHT, $6, $6, $3);
+            section_emit_word(instruction);
+        }
         |
         LD operand COMMA PERCENT GPR
         {printf("parsed ld\n");}
@@ -207,10 +272,19 @@ instruction:
         {printf("parsed st\n");}
         |
         CSRRD PERCENT CSR COMMA PERCENT GPR
-        {printf("parsed csrrd\n");}
+        {
+            printf("parsed csrrd\n");
+            uint32_t instruction = form_load_instruction(LOAD_GPR_FROM_CSR, $6, $3, 0, 0);
+            section_emit_word(instruction);
+        }
         |
         CSRWR PERCENT GPR COMMA PERCENT CSR
-        {printf("parsed csrwr\n");}
+        {
+            printf("parsed csrwr\n");
+            uint32_t instruction = form_load_instruction(LOAD_CSR_FROM_GPR, $6, $3, 0, 0);
+            section_emit_word(instruction);
+        }
+
 
     ;
 

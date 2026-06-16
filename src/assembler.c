@@ -530,6 +530,97 @@ void print_relocation_table()
     }
 }
 
+/* =========================
+   ENCODING
+   ========================= */
+
+uint32_t form_arithmetic_instruction(
+    uint8_t mode,
+    uint8_t a,
+    uint8_t b,
+    uint8_t c)
+{
+    return (0x5u << 28) |
+           ((mode & 0xF) << 24) |
+           ((a    & 0xF) << 20) |
+           ((b    & 0xF) << 16) |
+           ((c    & 0xF) << 12);
+}
+
+
+uint32_t form_logic_instruction(
+    uint8_t mode,
+    uint8_t a,
+    uint8_t b,
+    uint8_t c)
+{
+    return (0x6u << 28) |
+           ((mode & 0xF) << 24) |
+           ((a    & 0xF) << 20) |
+           ((b    & 0xF) << 16) |
+           ((c    & 0xF) << 12);
+}
+
+
+uint32_t form_shift_instruction(
+    uint8_t mode,
+    uint8_t a,
+    uint8_t b,
+    uint8_t c)
+{
+    return (0x7u << 28) |
+           ((mode & 0xF) << 24) |
+           ((a    & 0xF) << 20) |
+           ((b    & 0xF) << 16) |
+           ((c    & 0xF) << 12);
+}
+
+uint32_t form_load_instruction(
+    uint8_t mode,
+    uint8_t a,
+    uint8_t b,
+    uint8_t c,
+    uint16_t d)
+{
+    return (0x9u << 28) |
+           ((mode & 0xF) << 24) |
+           ((a    & 0xF) << 20) |
+           ((b    & 0xF) << 16) |
+           ((c    & 0xF) << 12) |
+           (d & 0xFFF);
+}
+
+uint32_t form_store_instruction(
+    uint8_t mode,
+    uint8_t a,
+    uint8_t b,
+    uint8_t c,
+    uint16_t d)
+{
+    return (0x8u << 28) |
+           ((mode & 0xF) << 24) |
+           ((a    & 0xF) << 20) |
+           ((b    & 0xF) << 16) |
+           ((c    & 0xF) << 12) |
+           (d & 0xFFF);
+}
+
+uint32_t form_pop_instruction(uint8_t gpr){
+    // sp == r14
+    return form_load_instruction(LOAD_GPR_FROM_MEM_POSTINC, gpr, 14, 0, 4);
+}   
+uint32_t form_pop_csr_instruction(uint8_t csr){
+    // sp == r14
+    return form_load_instruction(LOAD_CSR_FROM_MEM_POSTINC, csr, 14, 0, 4);
+}   
+
+uint32_t form_push_instruction(uint8_t gpr){
+    // sp == r14
+    return form_store_instruction(STORE_MEM_POSTINC, 14, 0, gpr, -4);
+}   
+
+
+
 
 /* =========================
    INIT

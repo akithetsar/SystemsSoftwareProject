@@ -83,19 +83,19 @@ extern int yydebug;
     ST = 289,
     CSRRD = 290,
     CSRWR = 291,
-    GPR = 292,
-    CSR = 293,
-    COMMA = 294,
-    COLON = 295,
-    LBRACKET = 296,
-    RBRACKET = 297,
-    PLUS = 298,
-    DOLLAR = 299,
-    EOL = 300,
-    PERCENT = 301,
-    NUMBER = 302,
-    IDENT = 303,
-    STRING = 304
+    COMMA = 292,
+    COLON = 293,
+    LBRACKET = 294,
+    RBRACKET = 295,
+    PLUS = 296,
+    DOLLAR = 297,
+    EOL = 298,
+    PERCENT = 299,
+    NUMBER = 300,
+    IDENT = 301,
+    STRING = 302,
+    GPR = 303,
+    CSR = 304
   };
 #endif
 
