@@ -26,7 +26,8 @@ void emit_byte(uint8_t byte);
 // REALLOCATIONS
 
 typedef enum {
-    ABS32
+    ABS32,
+    JMP_PCREL
 } RelocationType;
 
 typedef struct Relocation {
@@ -194,4 +195,23 @@ uint32_t form_store_instruction(
 uint32_t form_pop_instruction(uint8_t gpr);   
 uint32_t form_pop_csr_instruction(uint8_t csr);     
 uint32_t form_push_instruction(uint8_t gpr);  
+
+typedef enum JumpModes {
+    JMP_BASE           = 0, // pc <= gpr[A] + D
+    JMP_EQ             = 1, // if (B == C)
+    JMP_NE             = 2, // if (B != C)
+    JMP_GT             = 3, // if (B > C signed)
+    JMP_MEM_BASE       = 8, // pc <= mem32[gpr[A] + D]
+    JMP_MEM_EQ         = 9,
+    JMP_MEM_NE         = 10,
+    JMP_MEM_GT         = 11
+} JumpModes;
+
+uint32_t form_jump_instruction(
+    uint8_t mode,
+    uint8_t a,
+    uint8_t b,
+    uint8_t c,
+    uint16_t d);
+
 #endif

@@ -613,13 +613,25 @@ uint32_t form_pop_csr_instruction(uint8_t csr){
     // sp == r14
     return form_load_instruction(LOAD_CSR_FROM_MEM_POSTINC, csr, 14, 0, 4);
 }   
-
 uint32_t form_push_instruction(uint8_t gpr){
     // sp == r14
     return form_store_instruction(STORE_MEM_POSTINC, 14, 0, gpr, -4);
 }   
 
-
+uint32_t form_jump_instruction(
+    uint8_t mode,
+    uint8_t a,
+    uint8_t b,
+    uint8_t c,
+    uint16_t d)
+{
+    return (0x3u << 28) |              // opcode = JMP
+           ((mode & 0xF) << 24) |
+           ((a    & 0xF) << 20) |
+           ((b    & 0xF) << 16) |
+           ((c    & 0xF) << 12) |
+           (d & 0xFFF);
+}
 
 
 /* =========================

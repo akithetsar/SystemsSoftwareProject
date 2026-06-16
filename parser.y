@@ -4,12 +4,14 @@
 #include "assembler.h"
 int yylex();
 void yyerror(const char *s);
-
 %}
-
+%code requires {
+    #include "item.h"
+}
 %union {
     int num;
     char* str;
+    Item item;
 }
 
 
@@ -24,6 +26,8 @@ void yyerror(const char *s);
 %token <str> IDENT STRING
 %token <num> GPR
 %token <num> CSR
+
+%type <item> item
 %%
 
 program:
@@ -160,7 +164,16 @@ instruction:
         }
         |
         JMP item
-        {printf("parsed jmp\n");}
+        {
+            if($2.kind == ITEM_SYM){
+                printf("parsed jmp: %s\n", $2.sym);
+            }
+            else if($2.kind == ITEM_LITERAL){
+                uint32_t instruction = form_jump_instruction(JMP_BASE, 15, 0, 0, $2.value);
+                section_emit_word(instruction);
+            }
+            
+        }
         |
         BEQ PERCENT GPR COMMA PERCENT GPR COMMA item
         {printf("parsed beq\n");}
@@ -375,7 +388,17 @@ item_word:
     ;
 
 item:
-    IDENT | NUMBER
+    IDENT
+    {
+       $$.kind = ITEM_SYM;
+       $$.sym = $1;
+    }
+    | 
+    NUMBER
+    {
+        $$.kind = ITEM_LITERAL;
+        $$.value = $1;
+    }
 ;
 
 init_list_word:
