@@ -24,6 +24,9 @@ Symbol *symbolTable = NULL;
 int symbolCount = 0;
 int symbolCapacity = 0;
 
+LiteralPoolEntry *literalPool = NULL;
+int literalPoolCount = 0;
+int literalPoolCapacity = 0;
 
 int add_symbol(
     const char *name,
@@ -382,6 +385,42 @@ void backpatch(Symbol* sym){
 
 }
 
+void emit_symbol_word(char* sym_name){
+    
+    //for backpatch
+    Symbol *sym = get_symbol(sym_name);
+    if(sym != NULL){
+        //Symbol in table
+        if(sym->defined == 1){
+            //symbol defined
+            printf("Emit section word with symbol: %s\n", sym_name);
+            section_emit_word(sym->value);
+        }
+        else if (sym->defined == 0){
+            //symbol undefined
+            add_flink(sym);
+            section_emit_word(0x00000000);
+            }
+        }
+    else{
+        //Symbol not in table
+        add_symbol(sym_name, 0xFFFFFFFF, -1, SYM_NOTYP, SYM_LOC, 0);
+        add_flink(get_symbol(sym_name));
+        section_emit_word(0x00000000);
+    }
+    //for reloc
+    sym = get_symbol(sym_name);
+
+    uint32_t patchOffset = sectionDefinitions[currentSection].length - 4;
+
+    add_relocation(
+        currentSection,
+        patchOffset,
+        sym->num,
+        ABS32
+    );
+}
+
 const char* symbol_type_to_string(SymbolType type)
 {
     switch(type)
@@ -496,7 +535,8 @@ static const char* relocation_type_to_string(RelocationType type)
     {
         case ABS32:
             return "ABS32";
-
+        case JMP_LIT:
+            return "JMP_LIT";
         default:
             return "???";
     }
@@ -528,6 +568,123 @@ void print_relocation_table()
                    symbolTable[rel->symbolIndex].name, rel->symbolIndex);
         }
     }
+}
+
+/* =========================
+   Literal Pool
+   ========================= */
+int litSection;
+void init_literal_pool()
+{
+    literalPoolCapacity = 64;
+    literalPoolCount = 0;
+
+    literalPool = (LiteralPoolEntry*)
+        calloc(literalPoolCapacity,
+               sizeof(LiteralPoolEntry));
+}
+
+void ensure_literal_pool_capacity()
+{
+    if(literalPoolCount < literalPoolCapacity)
+        return;
+
+    literalPoolCapacity *= 2;
+
+    literalPool = (LiteralPoolEntry*)
+        realloc(
+            literalPool,
+            literalPoolCapacity *
+            sizeof(LiteralPoolEntry)
+        );
+}
+
+LiteralPoolEntry* get_literal_pool_entry(
+    int symbolIndex,
+    int section
+)
+{
+    for(int i = 0; i < literalPoolCount; i++)
+    {
+        if(literalPool[i].symbolIndex == symbolIndex &&
+           literalPool[i].section == section)
+        {
+            return &literalPool[i];
+        }
+    }
+
+    return NULL;
+}
+
+LiteralPoolEntry* add_literal_pool_entry(Symbol *sym)
+{
+    ensure_literal_pool_capacity();
+
+    LiteralPoolEntry *entry =
+        &literalPool[literalPoolCount++];
+
+    entry->symbolIndex = sym->num;
+    entry->section = litSection;
+
+    SectionDefinition *lit = &sectionDefinitions[litSection];
+
+    entry->offset = lit->length;
+
+    uint32_t value = sym->value;
+
+    lit->data = (uint8_t*)realloc(lit->data, lit->length + 4);
+
+    lit->data[lit->length + 0] = (uint8_t)(value & 0xFF);
+    lit->data[lit->length + 1] = (uint8_t)((value >> 8) & 0xFF);
+    lit->data[lit->length + 2] = (uint8_t)((value >> 16) & 0xFF);
+    lit->data[lit->length + 3] = (uint8_t)((value >> 24) & 0xFF);
+
+    lit->length += 4;
+
+    if (sym->defined == 0 || sym->value == 0xFFFFFFFF)
+    {
+        add_relocation(
+            litSection,
+            entry->offset,
+            sym->num,
+            ABS32
+        );
+    }
+
+    return entry;
+}
+
+LiteralPoolEntry* get_or_create_literal_pool_entry(Symbol *sym)
+{
+    for (int i = 0; i < literalPoolCount; i++)
+    {
+        if (literalPool[i].symbolIndex == sym->num &&
+            literalPool[i].section == litSection)
+        {
+            return &literalPool[i];
+        }
+    }
+
+    return add_literal_pool_entry(sym);
+}
+
+
+int displacement_fits_12bit(
+    int32_t d
+)
+{
+    return d >= -2048 &&
+           d <= 2047;
+}
+
+int32_t calculate_literal_displacement(
+    uint32_t instructionOffset,
+    LiteralPoolEntry *entry
+)
+{
+    return
+        (int32_t)entry->offset -
+        (int32_t)instructionOffset;
 }
 
 /* =========================
@@ -633,6 +790,172 @@ uint32_t form_jump_instruction(
            (d & 0xFFF);
 }
 
+int can_use_pcrel(Symbol *sym)
+{
+    if(sym == NULL || sym->defined == 0){
+        return 0;
+    }
+    Symbol* sym_sec = get_symbol(sectionDefinitions[currentSection].name);
+    if(sym->ndx != sym_sec->ndx){
+        
+        return 0;
+    }
+        
+    int32_t d =
+    (int32_t)sym->value -
+    (int32_t)(sectionDefinitions[currentSection].length + 4);
+
+    return d >= -2048 && d <= 2047;
+}
+
+void emit_jmp_literal(Symbol *sym, uint8_t b, uint8_t c, uint8_t mode)
+{
+    LiteralPoolEntry *entry =
+        get_or_create_literal_pool_entry(sym);
+
+    uint32_t instr =
+        form_jump_instruction(
+            mode,
+            15,
+            b,
+            c,
+            entry->offset   // placeholder, NOT real displacement
+        );
+
+    uint32_t offset =
+        sectionDefinitions[currentSection].length;
+
+    section_emit_word(instr);
+
+    add_relocation(
+        currentSection,
+        offset,
+        entry->symbolIndex,
+        JMP_LIT
+    );
+}
+
+void emit_jmp_pcrel(Symbol *sym, uint8_t b, uint8_t c, uint8_t mode)
+{
+    int32_t pc =
+        (int32_t)sectionDefinitions[currentSection].length + 4;
+
+    int32_t d =
+        (int32_t)sym->value - pc;
+
+    uint32_t instr =
+        form_jump_instruction(
+            mode,
+            15,
+            b,
+            c,
+            (uint16_t)d
+        );
+
+    section_emit_word(instr);
+}
+
+void emit_symbol_jmp(char *sym_name, uint8_t b, uint8_t c, uint8_t mode_rel, uint8_t mode_mem)
+{
+    Symbol *sym = get_symbol(sym_name);
+
+    if(sym == NULL)
+    {
+        add_symbol(sym_name, 0xFFFFFFFF, -1, SYM_NOTYP, SYM_LOC, 0);
+    }
+    sym = get_symbol(sym_name);
+
+    if(can_use_pcrel(sym))
+    {
+        emit_jmp_pcrel(sym, b, c, mode_rel);
+
+    }
+    else
+    {
+        emit_jmp_literal(sym, b, c, mode_mem);
+    }
+}
+
+
+uint32_t form_call_instruction(
+    uint8_t mode,
+    uint8_t a,
+    uint8_t b,
+    uint16_t d)
+{
+    return (0x2u << 28) |
+           ((mode & 0xF) << 24) |
+           ((a    & 0xF) << 20) |
+           ((b    & 0xF) << 16) |
+           (d & 0xFFF);
+}
+
+void emit_call_literal(Symbol *sym)
+{
+    LiteralPoolEntry *entry =
+        get_or_create_literal_pool_entry(sym);
+
+    uint32_t instr =
+        form_call_instruction(
+            CALL_MEM,
+            15,
+            0,
+            entry->offset   // placeholder, NOT real displacement
+        );
+
+    uint32_t offset =
+        sectionDefinitions[currentSection].length;
+
+    section_emit_word(instr);
+
+    add_relocation(
+        currentSection,
+        offset,
+        entry->symbolIndex,
+        JMP_LIT
+    );
+}
+
+void emit_call_pcrel(Symbol *sym)
+{
+    int32_t pc =
+        (int32_t)sectionDefinitions[currentSection].length + 4;
+
+    int32_t d =
+        (int32_t)sym->value - pc;
+
+    uint32_t instr =
+        form_call_instruction(
+            CALL_REL,
+            15,
+            0,
+            (uint16_t)d
+        );
+
+    section_emit_word(instr);
+}
+
+void emit_symbol_call(char *sym_name)
+{
+    Symbol *sym = get_symbol(sym_name);
+
+    if(sym == NULL)
+    {
+        add_symbol(sym_name, 0xFFFFFFFF, -1, SYM_NOTYP, SYM_LOC, 0);
+    }
+    sym = get_symbol(sym_name);
+
+    if(can_use_pcrel(sym))
+    {
+        emit_call_pcrel(sym);
+
+    }
+    else
+    {
+        emit_call_literal(sym);
+    }
+}
+
 
 /* =========================
    INIT
@@ -678,7 +1001,8 @@ int main(int argc, char **argv)
     init_assembler();
     init_sections();
     init_symbol_table();
-
+    init_literal_pool();    
+    litSection = create_section(".lit");
     printf("Assembler initialized\n");
     printf("locationCounter=%i\n", locationCounter);
 

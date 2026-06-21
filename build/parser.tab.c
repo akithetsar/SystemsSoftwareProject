@@ -570,11 +570,11 @@ static const yytype_int16 yyrline[] =
 {
        0,    34,    34,    37,    39,    43,    44,    48,    49,    50,
       51,    52,    57,    85,    88,    91,    96,   102,   112,   125,
-     133,   139,   145,   154,   159,   166,   178,   181,   184,   187,
-     194,   201,   211,   218,   225,   232,   239,   246,   253,   260,
-     267,   274,   281,   284,   287,   294,   311,   312,   316,   332,
-     333,   336,   351,   387,   391,   397,   405,   405,   411,   413,
-     415,   417,   419,   421,   423,   425,   427,   429,   431,   433
+     133,   139,   145,   154,   186,   193,   230,   260,   291,   321,
+     328,   335,   345,   352,   359,   366,   373,   380,   387,   394,
+     401,   408,   415,   418,   421,   428,   445,   446,   450,   466,
+     467,   470,   485,   489,   493,   499,   507,   507,   513,   515,
+     517,   519,   521,   523,   525,   527,   529,   531,   533,   535
 };
 #endif
 
@@ -1607,77 +1607,208 @@ yyreduce:
 
   case 23:
 #line 155 "parser.y"
-        {printf("parsed call\n");
-        
+        {
+            printf("parsed call\n");
+            uint32_t instruction = form_push_instruction(15);
+            section_emit_word(instruction);
+            if((yyvsp[0].item).kind == ITEM_SYM)
+            {
+                emit_symbol_call((yyvsp[0].item).sym);
+            }
+            else if((yyvsp[0].item).kind == ITEM_LITERAL)
+            {
+                int32_t d = (yyvsp[0].item).value;
+
+                if(d >= -2048 && d <= 2047)
+                {
+                    uint32_t instr =
+                        form_call_instruction(
+                            CALL_REL,
+                            0, 0,
+                            (uint16_t)d
+                        );
+
+                    section_emit_word(instr);
+                    printf("Instruction jmp: %08X \n", instr);
+                }
+                else
+                {
+                    printf("Literal out of range for PC-relative JMP\n");
+                }
+            }
         }
-#line 1614 "build/parser.tab.c"
+#line 1641 "build/parser.tab.c"
     break;
 
   case 24:
-#line 160 "parser.y"
+#line 187 "parser.y"
         {
             printf("parsed ret\n");
             uint32_t instruction = form_pop_instruction(15);
             section_emit_word(instruction);
         }
-#line 1624 "build/parser.tab.c"
-    break;
-
-  case 25:
-#line 167 "parser.y"
-        {
-            if((yyvsp[0].item).kind == ITEM_SYM){
-                printf("parsed jmp: %s\n", (yyvsp[0].item).sym);
-            }
-            else if((yyvsp[0].item).kind == ITEM_LITERAL){
-                uint32_t instruction = form_jump_instruction(JMP_BASE, 15, 0, 0, (yyvsp[0].item).value);
-                section_emit_word(instruction);
-            }
-            
-        }
-#line 1639 "build/parser.tab.c"
-    break;
-
-  case 26:
-#line 179 "parser.y"
-        {printf("parsed beq\n");}
-#line 1645 "build/parser.tab.c"
-    break;
-
-  case 27:
-#line 182 "parser.y"
-        {printf("parsed bne\n");}
 #line 1651 "build/parser.tab.c"
     break;
 
+  case 25:
+#line 194 "parser.y"
+        {
+            printf("parsed jmp\n");
+            if((yyvsp[0].item).kind == ITEM_SYM)
+            {
+                emit_symbol_jmp((yyvsp[0].item).sym, 0, 0, JMP_BASE, JMP_MEM_BASE);
+            }
+            else if((yyvsp[0].item).kind == ITEM_LITERAL)
+            {
+                int32_t d = (yyvsp[0].item).value;
+
+                if(d >= -2048 && d <= 2047)
+                {
+                    uint32_t instr =
+                        form_jump_instruction(
+                            JMP_BASE,
+                            0, 0, 0,
+                            (uint16_t)d
+                        );
+
+                    section_emit_word(instr);
+                    printf("Instruction jmp: %08X \n", instr);
+                }
+                else
+                {
+                    printf("Literal out of range for PC-relative JMP\n");
+                }
+            }
+            // if same section
+                // if d elm [-2048, 2047] -> pc relative
+                // else -> trough literal pool
+            // else if different sections -> trough literal pool
+        }
+#line 1688 "build/parser.tab.c"
+    break;
+
+  case 26:
+#line 231 "parser.y"
+        {
+            printf("parsed beq\n");
+            if((yyvsp[0].item).kind == ITEM_SYM)
+            {
+                emit_symbol_jmp((yyvsp[0].item).sym, (yyvsp[-5].num), (yyvsp[-2].num), JMP_EQ, JMP_MEM_EQ);
+            }
+            else if((yyvsp[0].item).kind == ITEM_LITERAL)
+            {
+                int32_t d = (yyvsp[0].item).value;
+
+                if(d >= -2048 && d <= 2047)
+                {
+                    uint32_t instr =
+                        form_jump_instruction(
+                            JMP_EQ,
+                            0, (yyvsp[-5].num), (yyvsp[-2].num),
+                            (uint16_t)d
+                        );
+
+                    section_emit_word(instr);
+                    printf("Instruction jmp: %08X \n", instr);
+                }
+                else
+                {
+                    printf("Literal out of range for PC-relative JMP\n");
+                }
+            }
+        }
+#line 1721 "build/parser.tab.c"
+    break;
+
+  case 27:
+#line 261 "parser.y"
+        {
+            printf("parsed bne\n");
+            if((yyvsp[0].item).kind == ITEM_SYM)
+            {
+                emit_symbol_jmp((yyvsp[0].item).sym, (yyvsp[-5].num), (yyvsp[-2].num), JMP_NE, JMP_MEM_NE);
+            }
+            else if((yyvsp[0].item).kind == ITEM_LITERAL)
+            {
+                int32_t d = (yyvsp[0].item).value;
+
+                if(d >= -2048 && d <= 2047)
+                {
+                    uint32_t instr =
+                        form_jump_instruction(
+                            JMP_NE,
+                            0, (yyvsp[-5].num), (yyvsp[-2].num),
+                            (uint16_t)d
+                        );
+
+                    section_emit_word(instr);
+                    printf("Instruction jmp: %08X \n", instr);
+                }
+                else
+                {
+                    printf("Literal out of range for PC-relative JMP\n");
+                }
+            }
+        
+        }
+#line 1755 "build/parser.tab.c"
+    break;
+
   case 28:
-#line 185 "parser.y"
-        {printf("parsed bgt\n");}
-#line 1657 "build/parser.tab.c"
+#line 292 "parser.y"
+        {
+            printf("parsed bgt\n");
+            if((yyvsp[0].item).kind == ITEM_SYM)
+            {
+                emit_symbol_jmp((yyvsp[0].item).sym, (yyvsp[-5].num), (yyvsp[-2].num), JMP_GT, JMP_MEM_GT);
+            }
+            else if((yyvsp[0].item).kind == ITEM_LITERAL)
+            {
+                int32_t d = (yyvsp[0].item).value;
+
+                if(d >= -2048 && d <= 2047)
+                {
+                    uint32_t instr =
+                        form_jump_instruction(
+                            JMP_GT,
+                            0, (yyvsp[-5].num), (yyvsp[-2].num),
+                            (uint16_t)d
+                        );
+
+                    section_emit_word(instr);
+                    printf("Instruction jmp: %08X \n", instr);
+                }
+                else
+                {
+                    printf("Literal out of range for PC-relative JMP\n");
+                }
+            }
+        }
+#line 1788 "build/parser.tab.c"
     break;
 
   case 29:
-#line 188 "parser.y"
+#line 322 "parser.y"
         {
             printf("parsed push\n");
             uint32_t instruction = form_push_instruction((yyvsp[0].num));
             section_emit_word(instruction);
         }
-#line 1667 "build/parser.tab.c"
+#line 1798 "build/parser.tab.c"
     break;
 
   case 30:
-#line 195 "parser.y"
+#line 329 "parser.y"
         {
             printf("parsed pop\n");
             uint32_t instruction = form_pop_instruction((yyvsp[0].num));
             section_emit_word(instruction);
         }
-#line 1677 "build/parser.tab.c"
+#line 1808 "build/parser.tab.c"
     break;
 
   case 31:
-#line 202 "parser.y"
+#line 336 "parser.y"
         {
             printf("parsed xchg\n");
             section_emit_word(
@@ -1686,241 +1817,209 @@ yyreduce:
                 (((yyvsp[-3].num) & 0xF) << 12)
             );
         }
-#line 1690 "build/parser.tab.c"
+#line 1821 "build/parser.tab.c"
     break;
 
   case 32:
-#line 212 "parser.y"
+#line 346 "parser.y"
         {
             printf("parsed add\n");
             uint32_t instruction = form_arithmetic_instruction(ARITH_ADD, (yyvsp[0].num), (yyvsp[-3].num), (yyvsp[0].num));
             section_emit_word(instruction);
         }
-#line 1700 "build/parser.tab.c"
+#line 1831 "build/parser.tab.c"
     break;
 
   case 33:
-#line 219 "parser.y"
+#line 353 "parser.y"
         {
             printf("parsed sub\n");
             uint32_t instruction = form_arithmetic_instruction(ARITH_SUB, (yyvsp[0].num), (yyvsp[0].num), (yyvsp[-3].num));
             section_emit_word(instruction);
         }
-#line 1710 "build/parser.tab.c"
+#line 1841 "build/parser.tab.c"
     break;
 
   case 34:
-#line 226 "parser.y"
+#line 360 "parser.y"
         {
             printf("parsed mul\n");
             uint32_t instruction = form_arithmetic_instruction(ARITH_MUL, (yyvsp[0].num), (yyvsp[0].num), (yyvsp[-3].num));
             section_emit_word(instruction);
         }
-#line 1720 "build/parser.tab.c"
+#line 1851 "build/parser.tab.c"
     break;
 
   case 35:
-#line 233 "parser.y"
+#line 367 "parser.y"
         {
             printf("parsed div\n");
             uint32_t instruction = form_arithmetic_instruction(ARITH_DIV, (yyvsp[0].num), (yyvsp[0].num), (yyvsp[-3].num));
             section_emit_word(instruction);
         }
-#line 1730 "build/parser.tab.c"
+#line 1861 "build/parser.tab.c"
     break;
 
   case 36:
-#line 240 "parser.y"
+#line 374 "parser.y"
         {
             printf("parsed not\n");
             uint32_t instruction = form_logic_instruction(LOGIC_NOT, (yyvsp[0].num), (yyvsp[0].num), 0);
             section_emit_word(instruction);
         }
-#line 1740 "build/parser.tab.c"
+#line 1871 "build/parser.tab.c"
     break;
 
   case 37:
-#line 247 "parser.y"
+#line 381 "parser.y"
         {
             printf("parsed and\n");
             uint32_t instruction = form_logic_instruction(LOGIC_AND, (yyvsp[0].num), (yyvsp[0].num), (yyvsp[-3].num));
             section_emit_word(instruction);
         }
-#line 1750 "build/parser.tab.c"
+#line 1881 "build/parser.tab.c"
     break;
 
   case 38:
-#line 254 "parser.y"
+#line 388 "parser.y"
         {
             printf("parsed or\n");
             uint32_t instruction = form_logic_instruction(LOGIC_OR, (yyvsp[0].num), (yyvsp[0].num), (yyvsp[-3].num));
             section_emit_word(instruction);
         }
-#line 1760 "build/parser.tab.c"
+#line 1891 "build/parser.tab.c"
     break;
 
   case 39:
-#line 261 "parser.y"
+#line 395 "parser.y"
         {
             printf("parsed xor\n");
             uint32_t instruction = form_logic_instruction(LOGIC_XOR, (yyvsp[0].num), (yyvsp[0].num), (yyvsp[-3].num));
             section_emit_word(instruction);
         }
-#line 1770 "build/parser.tab.c"
+#line 1901 "build/parser.tab.c"
     break;
 
   case 40:
-#line 268 "parser.y"
+#line 402 "parser.y"
         {
             printf("parsed shl\n");
             uint32_t instruction = form_shift_instruction(SHIFT_LEFT, (yyvsp[0].num), (yyvsp[0].num), (yyvsp[-3].num));
             section_emit_word(instruction);
         }
-#line 1780 "build/parser.tab.c"
+#line 1911 "build/parser.tab.c"
     break;
 
   case 41:
-#line 275 "parser.y"
+#line 409 "parser.y"
         {
             printf("parsed shr\n");
             uint32_t instruction = form_shift_instruction(SHIFT_RIGHT, (yyvsp[0].num), (yyvsp[0].num), (yyvsp[-3].num));
             section_emit_word(instruction);
         }
-#line 1790 "build/parser.tab.c"
+#line 1921 "build/parser.tab.c"
     break;
 
   case 42:
-#line 282 "parser.y"
+#line 416 "parser.y"
         {printf("parsed ld\n");}
-#line 1796 "build/parser.tab.c"
+#line 1927 "build/parser.tab.c"
     break;
 
   case 43:
-#line 285 "parser.y"
+#line 419 "parser.y"
         {printf("parsed st\n");}
-#line 1802 "build/parser.tab.c"
+#line 1933 "build/parser.tab.c"
     break;
 
   case 44:
-#line 288 "parser.y"
+#line 422 "parser.y"
         {
             printf("parsed csrrd\n");
             uint32_t instruction = form_load_instruction(LOAD_GPR_FROM_CSR, (yyvsp[0].num), (yyvsp[-3].num), 0, 0);
             section_emit_word(instruction);
         }
-#line 1812 "build/parser.tab.c"
+#line 1943 "build/parser.tab.c"
     break;
 
   case 45:
-#line 295 "parser.y"
+#line 429 "parser.y"
         {
             printf("parsed csrwr\n");
             uint32_t instruction = form_load_instruction(LOAD_CSR_FROM_GPR, (yyvsp[0].num), (yyvsp[-3].num), 0, 0);
             section_emit_word(instruction);
         }
-#line 1822 "build/parser.tab.c"
+#line 1953 "build/parser.tab.c"
     break;
 
   case 48:
-#line 317 "parser.y"
+#line 451 "parser.y"
         {
             Symbol *sym = get_symbol((yyvsp[0].str));
-                if(sym != NULL){
-                    //Symbol in table
-                    printf("Turn to extern symbol: %s\n", (yyvsp[0].str));
-                    sym->bind = SYM_GLOB; 
-                }
-                else{
-                    //Symbol not in table
-                    add_symbol((yyvsp[0].str), 0xFFFFFFFF, -1, SYM_NOTYP, SYM_GLOB, 0);
-                }
+            if(sym != NULL){
+                //Symbol in table
+                printf("Turn to extern symbol: %s\n", (yyvsp[0].str));
+                sym->bind = SYM_GLOB; 
+            }
+            else{
+                //Symbol not in table
+                add_symbol((yyvsp[0].str), 0xFFFFFFFF, -1, SYM_NOTYP, SYM_GLOB, 0);
+            }
         }
-#line 1839 "build/parser.tab.c"
+#line 1970 "build/parser.tab.c"
     break;
 
   case 51:
-#line 337 "parser.y"
+#line 471 "parser.y"
         {
             Symbol *sym = get_symbol((yyvsp[0].str));
-                if(sym != NULL){
-                    //Symbol in table
-                    printf("Turn global symbol: %s\n", (yyvsp[0].str));
-                    sym->bind = SYM_GLOB; 
-                }
-                else{
-                    //Symbol not in table
-                    add_symbol((yyvsp[0].str), 0xFFFFFFFF, -1, SYM_NOTYP, SYM_GLOB, 0);
-                }
+            if(sym != NULL){
+                //Symbol in table
+                printf("Turn global symbol: %s\n", (yyvsp[0].str));
+                sym->bind = SYM_GLOB; 
+            }
+            else{
+                //Symbol not in table
+                add_symbol((yyvsp[0].str), 0xFFFFFFFF, -1, SYM_NOTYP, SYM_GLOB, 0);
+            }
         }
-#line 1856 "build/parser.tab.c"
+#line 1987 "build/parser.tab.c"
     break;
 
   case 52:
-#line 352 "parser.y"
+#line 486 "parser.y"
             {
-                //for backpatch
-                Symbol *sym = get_symbol((yyvsp[0].str));
-                if(sym != NULL){
-                    //Symbol in table
-                    if(sym->defined == 1){
-                        //symbol defined
-                        printf("Emit section word with symbol: %s\n", (yyvsp[0].str));
-                        section_emit_word(sym->value);
-                    }
-                    else if (sym->defined == 0){
-                        //symbol undefined
-                        add_flink(sym);
-                        section_emit_word(0x00000000);
-                    }
-                }
-                else{
-                    //Symbol not in table
-                    add_symbol((yyvsp[0].str), 0xFFFFFFFF, -1, SYM_NOTYP, SYM_LOC, 0);
-                    add_flink(get_symbol((yyvsp[0].str)));
-                    section_emit_word(0x00000000);
-                }
-                //for reloc
-                sym = get_symbol((yyvsp[0].str));
-
-                uint32_t patchOffset = sectionDefinitions[currentSection].length - 4;
-                
-
-                add_relocation(
-                    currentSection,
-                    patchOffset,
-                    sym->num,
-                    ABS32
-                );
+                emit_symbol_word((yyvsp[0].str));
             }
-#line 1896 "build/parser.tab.c"
+#line 1995 "build/parser.tab.c"
     break;
 
   case 53:
-#line 387 "parser.y"
+#line 489 "parser.y"
                  {section_emit_word((yyvsp[0].num));}
-#line 1902 "build/parser.tab.c"
+#line 2001 "build/parser.tab.c"
     break;
 
   case 54:
-#line 392 "parser.y"
+#line 494 "parser.y"
     {
        (yyval.item).kind = ITEM_SYM;
        (yyval.item).sym = (yyvsp[0].str);
     }
-#line 1911 "build/parser.tab.c"
+#line 2010 "build/parser.tab.c"
     break;
 
   case 55:
-#line 398 "parser.y"
+#line 500 "parser.y"
     {
         (yyval.item).kind = ITEM_LITERAL;
         (yyval.item).value = (yyvsp[0].num);
     }
-#line 1920 "build/parser.tab.c"
+#line 2019 "build/parser.tab.c"
     break;
 
 
-#line 1924 "build/parser.tab.c"
+#line 2023 "build/parser.tab.c"
 
       default: break;
     }
@@ -2152,7 +2251,7 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 436 "parser.y"
+#line 538 "parser.y"
 
 
 void yyerror(const char *s)

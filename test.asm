@@ -28,6 +28,8 @@ third_label:
 .word 2
 .section .data
 
+
+
 DATAGLOB:
 iret
 .word 0 
@@ -68,11 +70,23 @@ ret
 call 123
 call 0x100
 call symbol_dest
+halt
+halt
+halt
+halt
+halt
+halt
+symbol_dest_two:
 
 jmp 456
 jmp 0x200
 jmp symbol_dest
-
+jmp symbol_dest_two
+jmp 0x200
+jmp 0x200
+jmp 0x200
+jmp symbol_dest
+jmp post
 # =========================================================
 # CONDITIONAL BRANCHES
 # =========================================================

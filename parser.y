@@ -152,8 +152,35 @@ instruction:
         }
         |
         CALL item
-        {printf("parsed call\n");
-        
+        {
+            printf("parsed call\n");
+            uint32_t instruction = form_push_instruction(15);
+            section_emit_word(instruction);
+            if($2.kind == ITEM_SYM)
+            {
+                emit_symbol_call($2.sym);
+            }
+            else if($2.kind == ITEM_LITERAL)
+            {
+                int32_t d = $2.value;
+
+                if(d >= -2048 && d <= 2047)
+                {
+                    uint32_t instr =
+                        form_call_instruction(
+                            CALL_REL,
+                            0, 0,
+                            (uint16_t)d
+                        );
+
+                    section_emit_word(instr);
+                    printf("Instruction jmp: %08X \n", instr);
+                }
+                else
+                {
+                    printf("Literal out of range for PC-relative JMP\n");
+                }
+            }
         }
         |
         RET
@@ -165,24 +192,131 @@ instruction:
         |
         JMP item
         {
-            if($2.kind == ITEM_SYM){
-                printf("parsed jmp: %s\n", $2.sym);
+            printf("parsed jmp\n");
+            if($2.kind == ITEM_SYM)
+            {
+                emit_symbol_jmp($2.sym, 0, 0, JMP_BASE, JMP_MEM_BASE);
             }
-            else if($2.kind == ITEM_LITERAL){
-                uint32_t instruction = form_jump_instruction(JMP_BASE, 15, 0, 0, $2.value);
-                section_emit_word(instruction);
+            else if($2.kind == ITEM_LITERAL)
+            {
+                int32_t d = $2.value;
+
+                if(d >= -2048 && d <= 2047)
+                {
+                    uint32_t instr =
+                        form_jump_instruction(
+                            JMP_BASE,
+                            0, 0, 0,
+                            (uint16_t)d
+                        );
+
+                    section_emit_word(instr);
+                    printf("Instruction jmp: %08X \n", instr);
+                }
+                else
+                {
+                    printf("Literal out of range for PC-relative JMP\n");
+                }
             }
-            
+            // if same section
+                // if d elm [-2048, 2047] -> pc relative
+                // else -> trough literal pool
+            // else if different sections -> trough literal pool
         }
+            
+            
+        
         |
         BEQ PERCENT GPR COMMA PERCENT GPR COMMA item
-        {printf("parsed beq\n");}
+        {
+            printf("parsed beq\n");
+            if($8.kind == ITEM_SYM)
+            {
+                emit_symbol_jmp($8.sym, $3, $6, JMP_EQ, JMP_MEM_EQ);
+            }
+            else if($8.kind == ITEM_LITERAL)
+            {
+                int32_t d = $8.value;
+
+                if(d >= -2048 && d <= 2047)
+                {
+                    uint32_t instr =
+                        form_jump_instruction(
+                            JMP_EQ,
+                            0, $3, $6,
+                            (uint16_t)d
+                        );
+
+                    section_emit_word(instr);
+                    printf("Instruction jmp: %08X \n", instr);
+                }
+                else
+                {
+                    printf("Literal out of range for PC-relative JMP\n");
+                }
+            }
+        }
         |
         BNE PERCENT GPR COMMA PERCENT GPR COMMA item
-        {printf("parsed bne\n");}
+        {
+            printf("parsed bne\n");
+            if($8.kind == ITEM_SYM)
+            {
+                emit_symbol_jmp($8.sym, $3, $6, JMP_NE, JMP_MEM_NE);
+            }
+            else if($8.kind == ITEM_LITERAL)
+            {
+                int32_t d = $8.value;
+
+                if(d >= -2048 && d <= 2047)
+                {
+                    uint32_t instr =
+                        form_jump_instruction(
+                            JMP_NE,
+                            0, $3, $6,
+                            (uint16_t)d
+                        );
+
+                    section_emit_word(instr);
+                    printf("Instruction jmp: %08X \n", instr);
+                }
+                else
+                {
+                    printf("Literal out of range for PC-relative JMP\n");
+                }
+            }
+        
+        }
         |
         BGT PERCENT GPR COMMA PERCENT GPR COMMA item
-        {printf("parsed bgt\n");}
+        {
+            printf("parsed bgt\n");
+            if($8.kind == ITEM_SYM)
+            {
+                emit_symbol_jmp($8.sym, $3, $6, JMP_GT, JMP_MEM_GT);
+            }
+            else if($8.kind == ITEM_LITERAL)
+            {
+                int32_t d = $8.value;
+
+                if(d >= -2048 && d <= 2047)
+                {
+                    uint32_t instr =
+                        form_jump_instruction(
+                            JMP_GT,
+                            0, $3, $6,
+                            (uint16_t)d
+                        );
+
+                    section_emit_word(instr);
+                    printf("Instruction jmp: %08X \n", instr);
+                }
+                else
+                {
+                    printf("Literal out of range for PC-relative JMP\n");
+                }
+            }
+        }
         |
         PUSH PERCENT GPR
         {
@@ -316,15 +450,15 @@ item_extern:
     IDENT
         {
             Symbol *sym = get_symbol($1);
-                if(sym != NULL){
-                    //Symbol in table
-                    printf("Turn to extern symbol: %s\n", $1);
-                    sym->bind = SYM_GLOB; 
-                }
-                else{
-                    //Symbol not in table
-                    add_symbol($1, 0xFFFFFFFF, -1, SYM_NOTYP, SYM_GLOB, 0);
-                }
+            if(sym != NULL){
+                //Symbol in table
+                printf("Turn to extern symbol: %s\n", $1);
+                sym->bind = SYM_GLOB; 
+            }
+            else{
+                //Symbol not in table
+                add_symbol($1, 0xFFFFFFFF, -1, SYM_NOTYP, SYM_GLOB, 0);
+            }
         }
 
 
@@ -336,53 +470,21 @@ item_glob:
     IDENT
         {
             Symbol *sym = get_symbol($1);
-                if(sym != NULL){
-                    //Symbol in table
-                    printf("Turn global symbol: %s\n", $1);
-                    sym->bind = SYM_GLOB; 
-                }
-                else{
-                    //Symbol not in table
-                    add_symbol($1, 0xFFFFFFFF, -1, SYM_NOTYP, SYM_GLOB, 0);
-                }
+            if(sym != NULL){
+                //Symbol in table
+                printf("Turn global symbol: %s\n", $1);
+                sym->bind = SYM_GLOB; 
+            }
+            else{
+                //Symbol not in table
+                add_symbol($1, 0xFFFFFFFF, -1, SYM_NOTYP, SYM_GLOB, 0);
+            }
         }
 
 item_word:
         IDENT 
             {
-                //for backpatch
-                Symbol *sym = get_symbol($1);
-                if(sym != NULL){
-                    //Symbol in table
-                    if(sym->defined == 1){
-                        //symbol defined
-                        printf("Emit section word with symbol: %s\n", $1);
-                        section_emit_word(sym->value);
-                    }
-                    else if (sym->defined == 0){
-                        //symbol undefined
-                        add_flink(sym);
-                        section_emit_word(0x00000000);
-                    }
-                }
-                else{
-                    //Symbol not in table
-                    add_symbol($1, 0xFFFFFFFF, -1, SYM_NOTYP, SYM_LOC, 0);
-                    add_flink(get_symbol($1));
-                    section_emit_word(0x00000000);
-                }
-                //for reloc
-                sym = get_symbol($1);
-
-                uint32_t patchOffset = sectionDefinitions[currentSection].length - 4;
-                
-
-                add_relocation(
-                    currentSection,
-                    patchOffset,
-                    sym->num,
-                    ABS32
-                );
+                emit_symbol_word($1);
             } 
         | NUMBER {section_emit_word($1);}
     ;

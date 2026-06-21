@@ -26,8 +26,8 @@ void emit_byte(uint8_t byte);
 // REALLOCATIONS
 
 typedef enum {
-    ABS32,
-    JMP_PCREL
+    ABS32, 
+    JMP_LIT // upisuje u d = litbase+currd - pc
 } RelocationType;
 
 typedef struct Relocation {
@@ -117,10 +117,41 @@ const char* get_symbols_section_name(const char *name);
 void add_flink(Symbol* sym);
 void backpatch(Symbol* sym);
 
+void emit_symbol_word(char* sym_name);
+
+//Literal Pool
+typedef struct {
+    int symbolIndex;
+    uint32_t offset;
+    int section;
+} LiteralPoolEntry;
+
+extern LiteralPoolEntry *literalPool;
+extern int literalPoolCount;
+extern int literalPoolCapacity;
+
+void init_literal_pool();
+void ensure_literal_pool_capacity();
+LiteralPoolEntry* get_literal_pool_entry(
+    int symbolIndex,
+    int section
+);
+LiteralPoolEntry* add_literal_pool_entry(
+    Symbol *sym
+);
+LiteralPoolEntry* get_or_create_literal_pool_entry(
+    Symbol *sym
+);
+int displacement_fits_12bit(
+    int32_t d
+);
+int32_t calculate_literal_displacement(
+    uint32_t instructionOffset,
+    LiteralPoolEntry *entry
+);
 
 
 // Encoding
-
 
 typedef enum ArithModes{
     ARITH_ADD = 0,
@@ -213,5 +244,23 @@ uint32_t form_jump_instruction(
     uint8_t b,
     uint8_t c,
     uint16_t d);
+
+void emit_symbol_jmp(char *sym_name, uint8_t b, uint8_t c, uint8_t mode_rel, uint8_t mode_mem);
+
+typedef enum CallModes {
+    CALL_REL           = 0, 
+    CALL_MEM           = 1, 
+    
+} CallModes;
+
+
+uint32_t form_call_instruction(
+    uint8_t mode,
+    uint8_t a,
+    uint8_t b,
+    uint16_t d);
+
+
+void emit_symbol_call(char *sym_name);
 
 #endif
