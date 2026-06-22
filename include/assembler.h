@@ -262,5 +262,6 @@ uint32_t form_call_instruction(
 
 
 void emit_symbol_call(char *sym_name);
+void emit_large_literal_load(int32_t literal, uint8_t dst_reg);
 
 #endif

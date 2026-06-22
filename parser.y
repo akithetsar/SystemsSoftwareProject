@@ -474,6 +474,24 @@ instruction:
                     d);
                 section_emit_word(instruction);
             }
+            else if($2.kind == OPERAND_LITERAL_VALUE){
+                int32_t d = $2.literal;
+                if (d >= -2048 && d <= 2047) {
+                    printf("Test within\n");
+                    uint32_t instruction = form_load_instruction(
+                    LOAD_GPR_FROM_GPR_PLUS_D,
+                    $5,
+                    0,
+                    0,
+                    d);
+                    section_emit_word(instruction);
+                    printf("%08X\n", instruction);
+                }
+                else{
+                    printf("Test large\n");
+                    emit_large_literal_load(d, $5);               
+                }  
+            }
             
         }
         |

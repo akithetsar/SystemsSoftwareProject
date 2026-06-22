@@ -8,7 +8,7 @@
 /* =========================
    GLOBAL STATE
    ========================= */
-
+int litSection;
 int locationCounter = 0;
 
 OutputContent outputContent;
@@ -421,6 +421,54 @@ void emit_symbol_word(char* sym_name){
     );
 }
 
+void emit_large_literal_load(int32_t literal, uint8_t dst_reg)
+{
+    char name[64];
+    sprintf(name, "__lit_%d", literal);
+
+    Symbol *sym = get_symbol(name);
+
+    if(sym == NULL)
+    {
+        add_symbol(
+            name,
+            (uint32_t)literal,
+            find_section(sectionDefinitions[litSection].name),
+            SYM_NOTYP,
+            SYM_LOC,
+            1
+        );
+
+        sym = get_symbol(name);
+    }
+
+    LiteralPoolEntry *entry =
+        get_or_create_literal_pool_entry(sym);
+
+    uint32_t instr =
+        form_load_instruction(
+            LOAD_GPR_FROM_MEM_INDEXED,
+            dst_reg,
+            15,     
+            0,
+            entry->offset   // placeholder
+        );
+
+    uint32_t offset =
+        sectionDefinitions[currentSection].length;
+
+    section_emit_word(instr);
+    printf("%08X\n", instr);
+    add_relocation(
+        currentSection,
+        offset,
+        sym->num,
+        JMP_LIT
+    );
+}
+
+
+
 const char* symbol_type_to_string(SymbolType type)
 {
     switch(type)
@@ -573,7 +621,7 @@ void print_relocation_table()
 /* =========================
    Literal Pool
    ========================= */
-int litSection;
+
 void init_literal_pool()
 {
     literalPoolCapacity = 64;
