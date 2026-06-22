@@ -7,11 +7,13 @@ void yyerror(const char *s);
 %}
 %code requires {
     #include "item.h"
+    #include "operand.h"
 }
 %union {
     int num;
     char* str;
     Item item;
+    Operand opr;
 }
 
 
@@ -28,6 +30,7 @@ void yyerror(const char *s);
 %token <num> CSR
 
 %type <item> item
+%type <opr> operand
 %%
 
 program:
@@ -413,7 +416,66 @@ instruction:
         }
         |
         LD operand COMMA PERCENT GPR
-        {printf("parsed ld\n");}
+        {
+            printf("parsed ld\n");
+            
+            if($2.kind == OPERAND_REG_VALUE){
+                uint32_t instruction = form_load_instruction(
+                    LOAD_GPR_FROM_GPR_PLUS_D,
+                    $5,
+                    $2.reg,
+                    0,
+                    0);
+                section_emit_word(instruction);
+            }
+            else if($2.kind == OPERAND_REG_ADDR){
+                uint32_t instruction = form_load_instruction(
+                    LOAD_GPR_FROM_MEM_INDEXED,
+                    $5,
+                    $2.reg,
+                    0,
+                    0);
+                section_emit_word(instruction);
+            }
+            else if($2.kind == OPERAND_REG_ADD_LITERAL){
+                int32_t d = $2.literal;
+                if (d < -2048 || d > 2047) {
+                    printf("Literal doesn't fit within 12 bits\n");
+                    exit(1);
+                }
+                uint32_t instruction = form_load_instruction(
+                    LOAD_GPR_FROM_MEM_INDEXED,
+                    $5,
+                    $2.reg,
+                    0,
+                    d);
+                section_emit_word(instruction);
+            }
+            else if($2.kind == OPERAND_REG_ADD_SYMBOL){
+                Symbol* sym = get_symbol($2.sym);
+                if(sym == NULL){
+                    printf("Symbol not defined for ld instruction\n");
+                    exit(1);
+                }
+                if(sym->ndx == -1){
+                    printf("Symbol value not defined for ld instruction\n");
+                    exit(1);
+                }
+                int32_t d = sym->value;
+                if (d < -2048 || d > 2047) {
+                    printf("Symbl value doesn't fit within 12 bits\n");
+                    exit(1);
+                }
+                uint32_t instruction = form_load_instruction(
+                    LOAD_GPR_FROM_MEM_INDEXED,
+                    $5,
+                    $2.reg,
+                    0,
+                    d);
+                section_emit_word(instruction);
+            }
+            
+        }
         |
         ST PERCENT GPR COMMA operand
         {printf("parsed st\n");}
@@ -431,11 +493,17 @@ instruction:
             uint32_t instruction = form_load_instruction(LOAD_CSR_FROM_GPR, $6, $3, 0, 0);
             section_emit_word(instruction);
         }
-
-
     ;
 
-
+/* Redosled:
+- `%reg` done 
+- `[%reg]` done
+- `[%reg + literal]` done
+- `[%reg + symbol]` done
+- `$literal`
+- `$symbol`
+- `symbol`
+- `literal` */
 symbol_list:
         IDENT
         | symbol_list COMMA IDENT
@@ -511,28 +579,74 @@ init_list_word:
 
 operand:
         DOLLAR NUMBER
+        {
+            $$.kind = OPERAND_LITERAL_VALUE;
+            $$.literal = $2;
+        }
         |
         DOLLAR IDENT
+        {
+            $$.kind = OPERAND_SYMBOL_VALUE;
+            $$.sym = $2;
+        }
         |
         PERCENT GPR
+        {
+            $$.kind = OPERAND_REG_VALUE;
+            $$.reg = $2;
+        }
         |
         NUMBER
+        {
+            $$.kind = OPERAND_LITERAL_ADDR;
+            $$.literal = $1;
+        }
         |
         IDENT
-        |
-        PERCENT CSR
+        {
+            $$.kind = OPERAND_SYMBOL_ADDR;
+            $$.sym = $1;
+        }
         |
         LBRACKET PERCENT GPR RBRACKET
+        {
+            $$.kind = OPERAND_REG_ADDR;
+            $$.reg = $3;
+        }
         |
         LBRACKET PERCENT CSR RBRACKET
+        {
+            $$.kind = OPERAND_REG_ADDR;
+            $$.reg = $3;
+        }
         |
         LBRACKET PERCENT GPR PLUS NUMBER RBRACKET
+        {
+            $$.kind = OPERAND_REG_ADD_LITERAL;
+            $$.reg = $3;
+            $$.literal = $5;
+        }
         |
         LBRACKET PERCENT GPR PLUS IDENT RBRACKET
+        {
+            $$.kind = OPERAND_REG_ADD_SYMBOL;
+            $$.reg = $3;
+            $$.sym = $5;
+        }
         |
         LBRACKET PERCENT CSR PLUS NUMBER RBRACKET
+        {
+            $$.kind = OPERAND_CSR_ADD_LITERAL;
+            $$.reg = $3;
+            $$.literal = $5;
+        }
         |
         LBRACKET PERCENT CSR PLUS IDENT RBRACKET
+        {
+            $$.kind = OPERAND_CSR_ADD_SYMBOL;
+            $$.reg = $3;
+            $$.sym = $5;
+        }
     ;
 
 %%

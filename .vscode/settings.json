@@ -1,6 +1,7 @@
 {
   "files.associations": {
     "assembler.h": "c",
-    "typeinfo": "c"
+    "typeinfo": "c",
+    "stdint.h": "c"
   }
 }

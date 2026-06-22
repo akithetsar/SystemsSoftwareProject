@@ -47,8 +47,9 @@ extern int yydebug;
 #line 8 "parser.y"
 
     #include "item.h"
+    #include "operand.h"
 
-#line 52 "build/parser.tab.h"
+#line 53 "build/parser.tab.h"
 
 /* Token type.  */
 #ifndef YYTOKENTYPE
@@ -109,13 +110,14 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 11 "parser.y"
+#line 12 "parser.y"
 
     int num;
     char* str;
     Item item;
+    Operand opr;
 
-#line 119 "build/parser.tab.h"
+#line 121 "build/parser.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;
