@@ -492,6 +492,10 @@ instruction:
                     emit_large_literal_load(d, $5);               
                 }  
             }
+            else if($2.kind == OPERAND_SYMBOL_VALUE)
+            {
+                emit_symbol_address_load($2.sym, $5);
+            }
             
         }
         |
@@ -518,8 +522,8 @@ instruction:
 - `[%reg]` done
 - `[%reg + literal]` done
 - `[%reg + symbol]` done
-- `$literal`
-- `$symbol`
+- `$literal` done
+- `$symbol` 
 - `symbol`
 - `literal` */
 symbol_list:

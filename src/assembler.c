@@ -467,7 +467,71 @@ void emit_large_literal_load(int32_t literal, uint8_t dst_reg)
     );
 }
 
+void emit_symbol_address_load(char *sym_name, uint8_t dst_reg)
+{
+    Symbol *sym = get_symbol(sym_name);
 
+    if(sym == NULL)
+    {
+        add_symbol(
+            sym_name,
+            0xFFFFFFFF,
+            -1,
+            SYM_NOTYP,
+            SYM_LOC,
+            0
+        );
+
+        sym = get_symbol(sym_name);
+    }
+
+    /*
+     * If symbol already defined and value fits 12 bits,
+     * use immediate load directly.
+     */
+    if(sym->defined &&
+       sym->value <= 2047)
+    {
+        uint32_t instr =
+            form_load_instruction(
+                LOAD_GPR_FROM_GPR_PLUS_D,
+                dst_reg,
+                0,
+                0,
+                sym->value
+            );
+
+        section_emit_word(instr);
+        return;
+    }
+
+    /*
+     * Otherwise go through literal pool.
+     */
+    LiteralPoolEntry *entry =
+        get_or_create_literal_pool_entry(sym);
+
+    uint32_t instr =
+        form_load_instruction(
+            LOAD_GPR_FROM_MEM_INDEXED,
+            dst_reg,
+            15,   // pc
+            0,
+            entry->offset   // placeholder
+        );
+
+    uint32_t offset =
+        sectionDefinitions[currentSection].length;
+
+    section_emit_word(instr);
+
+    add_relocation(
+        currentSection,
+        offset,
+        sym->num,
+        JMP_LIT
+    );
+}
 
 const char* symbol_type_to_string(SymbolType type)
 {

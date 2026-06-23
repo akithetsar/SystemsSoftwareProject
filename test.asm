@@ -159,6 +159,7 @@ ld $5, %r1
 ld $0x1234, %r2
 
 ld $symbol1, %r3
+symbol1:
 
 ld 100, %r4
 ld 0x200, %r5
