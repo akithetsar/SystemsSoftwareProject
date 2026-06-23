@@ -417,7 +417,8 @@ void emit_symbol_word(char* sym_name){
         currentSection,
         patchOffset,
         sym->num,
-        ABS32
+        ABS32,
+        0
     );
 }
 
@@ -463,7 +464,8 @@ void emit_large_literal_load(int32_t literal, uint8_t dst_reg)
         currentSection,
         offset,
         sym->num,
-        JMP_LIT
+        JMP_LIT,
+        entry->offset
     );
 }
 
@@ -529,7 +531,8 @@ void emit_symbol_address_load(char *sym_name, uint8_t dst_reg)
         currentSection,
         offset,
         sym->num,
-        JMP_LIT
+        JMP_LIT,
+        entry->offset
     );
 }
 
@@ -625,7 +628,8 @@ void add_relocation(
     int section,
     uint32_t offset,
     int symbolIndex,
-    RelocationType type
+    RelocationType type,
+    uint32_t addend
 )
 {
     SectionDefinition *sec =
@@ -639,6 +643,7 @@ void add_relocation(
     rel->offset = offset;
     rel->symbolIndex = symbolIndex;
     rel->type = type;
+    rel->addend = addend;
 }
 
 static const char* relocation_type_to_string(RelocationType type)
@@ -649,6 +654,8 @@ static const char* relocation_type_to_string(RelocationType type)
             return "ABS32";
         case JMP_LIT:
             return "JMP_LIT";
+        case PCREL12:
+            return "PCREL12";
         default:
             return "???";
     }
@@ -759,7 +766,8 @@ LiteralPoolEntry* add_literal_pool_entry(Symbol *sym)
             litSection,
             entry->offset,
             sym->num,
-            ABS32
+            ABS32,
+            0
         );
     }
 
@@ -943,7 +951,8 @@ void emit_jmp_literal(Symbol *sym, uint8_t b, uint8_t c, uint8_t mode)
         currentSection,
         offset,
         entry->symbolIndex,
-        JMP_LIT
+        JMP_LIT,
+        entry->offset
     );
 }
 
@@ -1024,7 +1033,8 @@ void emit_call_literal(Symbol *sym)
         currentSection,
         offset,
         entry->symbolIndex,
-        JMP_LIT
+        JMP_LIT,
+        entry->offset
     );
 }
 

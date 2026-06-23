@@ -496,6 +496,76 @@ instruction:
             {
                 emit_symbol_address_load($2.sym, $5);
             }
+            else if($2.kind == OPERAND_LITERAL_ADDR)
+            {
+                uint32_t offset =
+                    sectionDefinitions[currentSection].length;
+
+
+                uint32_t instr =
+                    form_load_instruction(
+                        LOAD_GPR_FROM_MEM_INDEXED,
+                        $5,
+                        15,   // pc
+                        0,
+                        0     // placeholder
+                    );
+
+
+                section_emit_word(instr);
+
+
+                add_relocation(
+                    currentSection,
+                    offset,
+                    -1,          // no symbol
+                    PCREL12,
+                    $2.literal
+                );
+            }
+            else if($2.kind == OPERAND_SYMBOL_ADDR)
+            {
+                Symbol *sym = get_symbol($2.sym);
+
+                if(sym == NULL)
+                {
+                    add_symbol(
+                        $2.sym,
+                        0xFFFFFFFF,
+                        -1,
+                        SYM_NOTYP,
+                        SYM_LOC,
+                        0
+                    );
+
+                    sym = get_symbol($2.sym);
+                }
+
+
+                uint32_t offset =
+                    sectionDefinitions[currentSection].length;
+
+
+                uint32_t instr =
+                    form_load_instruction(
+                        LOAD_GPR_FROM_MEM_INDEXED,
+                        $5,
+                        15,
+                        0,
+                        0
+                    );
+
+                section_emit_word(instr);
+
+
+                add_relocation(
+                    currentSection,
+                    offset,
+                    sym->num,
+                    PCREL12,
+                    0
+                );
+            }
             
         }
         |
