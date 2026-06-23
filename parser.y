@@ -570,7 +570,55 @@ instruction:
         }
         |
         ST PERCENT GPR COMMA operand
-        {printf("parsed st\n");}
+        {
+            printf("parsed st\n");
+            if($5.kind == OPERAND_REG_ADDR){
+                uint32_t instruction = form_store_instruction(
+                    STORE_MEM_INDEXED,
+                    $5.reg,
+                    0,
+                    $3,
+                    0);
+                section_emit_word(instruction);
+            }
+            else if($5.kind == OPERAND_REG_ADD_LITERAL){
+                int32_t d = $5.literal;
+                if (d < -2048 || d > 2047) {
+                    printf("Literal doesn't fit within 12 bits\n");
+                    exit(1);
+                }
+                uint32_t instruction = form_store_instruction(
+                    STORE_MEM_INDEXED,
+                    $5.reg,
+                    0,
+                    $3,
+                    d);
+                section_emit_word(instruction);
+            }
+            else if($5.kind == OPERAND_REG_ADD_SYMBOL){
+                Symbol* sym = get_symbol($5.sym);
+                if(sym == NULL){
+                    printf("Symbol not defined for st instruction\n");
+                    exit(1);
+                }
+                if(sym->ndx == -1){
+                    printf("Symbol value not defined for st instruction\n");
+                    exit(1);
+                }
+                int32_t d = sym->value;
+                if (d < -2048 || d > 2047) {
+                    printf("Symbl value doesn't fit within 12 bits\n");
+                    exit(1);
+                }
+                uint32_t instruction = form_store_instruction(
+                    STORE_MEM_INDEXED,
+                    $5.reg,
+                    0,
+                    $3,
+                    d);
+                section_emit_word(instruction);
+            }
+        }
         |
         CSRRD PERCENT CSR COMMA PERCENT GPR
         {
