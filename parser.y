@@ -618,6 +618,77 @@ instruction:
                     d);
                 section_emit_word(instruction);
             }
+            else if($5.kind == OPERAND_LITERAL_ADDR)
+            {
+                uint32_t offset =
+                    sectionDefinitions[currentSection].length;
+
+
+                uint32_t instr =
+                    form_store_instruction(
+                        STORE_MEM_INDEXED,
+                        15,   // pc
+                        0,
+                        $3,
+                        0     // placeholder
+                    );
+
+
+                section_emit_word(instr);
+
+
+                add_relocation(
+                    currentSection,
+                    offset,
+                    -1,          // no symbol
+                    PCREL12,
+                    $5.literal
+                );
+            }
+            else if($5.kind == OPERAND_SYMBOL_ADDR)
+            {
+                Symbol *sym = get_symbol($5.sym);
+
+                if(sym == NULL)
+                {
+                    add_symbol(
+                        $5.sym,
+                        0xFFFFFFFF,
+                        -1,
+                        SYM_NOTYP,
+                        SYM_LOC,
+                        0
+                    );
+
+                    sym = get_symbol($5.sym);
+                }
+
+
+                uint32_t offset =
+                    sectionDefinitions[currentSection].length;
+
+
+                uint32_t instr =
+                    form_store_instruction(
+                        STORE_MEM_INDEXED,
+                        15,
+                        0,
+                        $3,
+                        0
+                    );
+
+                section_emit_word(instr);
+
+
+                add_relocation(
+                    currentSection,
+                    offset,
+                    sym->num,
+                    PCREL12,
+                    0
+                );
+            }
+            
         }
         |
         CSRRD PERCENT CSR COMMA PERCENT GPR

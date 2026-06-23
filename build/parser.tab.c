@@ -574,9 +574,9 @@ static const yytype_int16 yyrline[] =
       54,    55,    60,    88,    91,    94,    99,   105,   115,   128,
      136,   142,   148,   157,   189,   196,   233,   263,   294,   324,
      331,   338,   348,   355,   362,   369,   376,   383,   390,   397,
-     404,   411,   418,   572,   623,   630,   653,   654,   658,   674,
-     675,   678,   693,   697,   701,   707,   715,   715,   721,   727,
-     733,   739,   745,   751,   757,   763,   770,   777,   784
+     404,   411,   418,   572,   694,   701,   724,   725,   729,   745,
+     746,   749,   764,   768,   772,   778,   786,   786,   792,   798,
+     804,   810,   816,   822,   828,   834,   841,   848,   855
 };
 #endif
 
@@ -2129,32 +2129,103 @@ yyreduce:
                     d);
                 section_emit_word(instruction);
             }
+            else if((yyvsp[0].opr).kind == OPERAND_LITERAL_ADDR)
+            {
+                uint32_t offset =
+                    sectionDefinitions[currentSection].length;
+
+
+                uint32_t instr =
+                    form_store_instruction(
+                        STORE_MEM_INDEXED,
+                        15,   // pc
+                        0,
+                        (yyvsp[-2].num),
+                        0     // placeholder
+                    );
+
+
+                section_emit_word(instr);
+
+
+                add_relocation(
+                    currentSection,
+                    offset,
+                    -1,          // no symbol
+                    PCREL12,
+                    (yyvsp[0].opr).literal
+                );
+            }
+            else if((yyvsp[0].opr).kind == OPERAND_SYMBOL_ADDR)
+            {
+                Symbol *sym = get_symbol((yyvsp[0].opr).sym);
+
+                if(sym == NULL)
+                {
+                    add_symbol(
+                        (yyvsp[0].opr).sym,
+                        0xFFFFFFFF,
+                        -1,
+                        SYM_NOTYP,
+                        SYM_LOC,
+                        0
+                    );
+
+                    sym = get_symbol((yyvsp[0].opr).sym);
+                }
+
+
+                uint32_t offset =
+                    sectionDefinitions[currentSection].length;
+
+
+                uint32_t instr =
+                    form_store_instruction(
+                        STORE_MEM_INDEXED,
+                        15,
+                        0,
+                        (yyvsp[-2].num),
+                        0
+                    );
+
+                section_emit_word(instr);
+
+
+                add_relocation(
+                    currentSection,
+                    offset,
+                    sym->num,
+                    PCREL12,
+                    0
+                );
+            }
+            
         }
-#line 2134 "build/parser.tab.c"
+#line 2205 "build/parser.tab.c"
     break;
 
   case 44:
-#line 624 "parser.y"
+#line 695 "parser.y"
         {
             printf("parsed csrrd\n");
             uint32_t instruction = form_load_instruction(LOAD_GPR_FROM_CSR, (yyvsp[0].num), (yyvsp[-3].num), 0, 0);
             section_emit_word(instruction);
         }
-#line 2144 "build/parser.tab.c"
+#line 2215 "build/parser.tab.c"
     break;
 
   case 45:
-#line 631 "parser.y"
+#line 702 "parser.y"
         {
             printf("parsed csrwr\n");
             uint32_t instruction = form_load_instruction(LOAD_CSR_FROM_GPR, (yyvsp[0].num), (yyvsp[-3].num), 0, 0);
             section_emit_word(instruction);
         }
-#line 2154 "build/parser.tab.c"
+#line 2225 "build/parser.tab.c"
     break;
 
   case 48:
-#line 659 "parser.y"
+#line 730 "parser.y"
         {
             Symbol *sym = get_symbol((yyvsp[0].str));
             if(sym != NULL){
@@ -2167,11 +2238,11 @@ yyreduce:
                 add_symbol((yyvsp[0].str), 0xFFFFFFFF, -1, SYM_NOTYP, SYM_GLOB, 0);
             }
         }
-#line 2171 "build/parser.tab.c"
+#line 2242 "build/parser.tab.c"
     break;
 
   case 51:
-#line 679 "parser.y"
+#line 750 "parser.y"
         {
             Symbol *sym = get_symbol((yyvsp[0].str));
             if(sym != NULL){
@@ -2184,146 +2255,146 @@ yyreduce:
                 add_symbol((yyvsp[0].str), 0xFFFFFFFF, -1, SYM_NOTYP, SYM_GLOB, 0);
             }
         }
-#line 2188 "build/parser.tab.c"
+#line 2259 "build/parser.tab.c"
     break;
 
   case 52:
-#line 694 "parser.y"
+#line 765 "parser.y"
             {
                 emit_symbol_word((yyvsp[0].str));
             }
-#line 2196 "build/parser.tab.c"
+#line 2267 "build/parser.tab.c"
     break;
 
   case 53:
-#line 697 "parser.y"
+#line 768 "parser.y"
                  {section_emit_word((yyvsp[0].num));}
-#line 2202 "build/parser.tab.c"
+#line 2273 "build/parser.tab.c"
     break;
 
   case 54:
-#line 702 "parser.y"
+#line 773 "parser.y"
     {
        (yyval.item).kind = ITEM_SYM;
        (yyval.item).sym = (yyvsp[0].str);
     }
-#line 2211 "build/parser.tab.c"
+#line 2282 "build/parser.tab.c"
     break;
 
   case 55:
-#line 708 "parser.y"
+#line 779 "parser.y"
     {
         (yyval.item).kind = ITEM_LITERAL;
         (yyval.item).value = (yyvsp[0].num);
     }
-#line 2220 "build/parser.tab.c"
+#line 2291 "build/parser.tab.c"
     break;
 
   case 58:
-#line 722 "parser.y"
+#line 793 "parser.y"
         {
             (yyval.opr).kind = OPERAND_LITERAL_VALUE;
             (yyval.opr).literal = (yyvsp[0].num);
         }
-#line 2229 "build/parser.tab.c"
+#line 2300 "build/parser.tab.c"
     break;
 
   case 59:
-#line 728 "parser.y"
+#line 799 "parser.y"
         {
             (yyval.opr).kind = OPERAND_SYMBOL_VALUE;
             (yyval.opr).sym = (yyvsp[0].str);
         }
-#line 2238 "build/parser.tab.c"
+#line 2309 "build/parser.tab.c"
     break;
 
   case 60:
-#line 734 "parser.y"
+#line 805 "parser.y"
         {
             (yyval.opr).kind = OPERAND_REG_VALUE;
             (yyval.opr).reg = (yyvsp[0].num);
         }
-#line 2247 "build/parser.tab.c"
+#line 2318 "build/parser.tab.c"
     break;
 
   case 61:
-#line 740 "parser.y"
+#line 811 "parser.y"
         {
             (yyval.opr).kind = OPERAND_LITERAL_ADDR;
             (yyval.opr).literal = (yyvsp[0].num);
         }
-#line 2256 "build/parser.tab.c"
+#line 2327 "build/parser.tab.c"
     break;
 
   case 62:
-#line 746 "parser.y"
+#line 817 "parser.y"
         {
             (yyval.opr).kind = OPERAND_SYMBOL_ADDR;
             (yyval.opr).sym = (yyvsp[0].str);
         }
-#line 2265 "build/parser.tab.c"
+#line 2336 "build/parser.tab.c"
     break;
 
   case 63:
-#line 752 "parser.y"
+#line 823 "parser.y"
         {
             (yyval.opr).kind = OPERAND_REG_ADDR;
             (yyval.opr).reg = (yyvsp[-1].num);
         }
-#line 2274 "build/parser.tab.c"
+#line 2345 "build/parser.tab.c"
     break;
 
   case 64:
-#line 758 "parser.y"
+#line 829 "parser.y"
         {
             (yyval.opr).kind = OPERAND_REG_ADDR;
             (yyval.opr).reg = (yyvsp[-1].num);
         }
-#line 2283 "build/parser.tab.c"
+#line 2354 "build/parser.tab.c"
     break;
 
   case 65:
-#line 764 "parser.y"
+#line 835 "parser.y"
         {
             (yyval.opr).kind = OPERAND_REG_ADD_LITERAL;
             (yyval.opr).reg = (yyvsp[-3].num);
             (yyval.opr).literal = (yyvsp[-1].num);
         }
-#line 2293 "build/parser.tab.c"
+#line 2364 "build/parser.tab.c"
     break;
 
   case 66:
-#line 771 "parser.y"
+#line 842 "parser.y"
         {
             (yyval.opr).kind = OPERAND_REG_ADD_SYMBOL;
             (yyval.opr).reg = (yyvsp[-3].num);
             (yyval.opr).sym = (yyvsp[-1].str);
         }
-#line 2303 "build/parser.tab.c"
+#line 2374 "build/parser.tab.c"
     break;
 
   case 67:
-#line 778 "parser.y"
+#line 849 "parser.y"
         {
             (yyval.opr).kind = OPERAND_CSR_ADD_LITERAL;
             (yyval.opr).reg = (yyvsp[-3].num);
             (yyval.opr).literal = (yyvsp[-1].num);
         }
-#line 2313 "build/parser.tab.c"
+#line 2384 "build/parser.tab.c"
     break;
 
   case 68:
-#line 785 "parser.y"
+#line 856 "parser.y"
         {
             (yyval.opr).kind = OPERAND_CSR_ADD_SYMBOL;
             (yyval.opr).reg = (yyvsp[-3].num);
             (yyval.opr).sym = (yyvsp[-1].str);
         }
-#line 2323 "build/parser.tab.c"
+#line 2394 "build/parser.tab.c"
     break;
 
 
-#line 2327 "build/parser.tab.c"
+#line 2398 "build/parser.tab.c"
 
       default: break;
     }
@@ -2555,7 +2626,7 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 792 "parser.y"
+#line 863 "parser.y"
 
 
 void yyerror(const char *s)
