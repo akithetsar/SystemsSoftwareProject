@@ -10,7 +10,8 @@
 
 .extern symbol4
 
-
+.section .gay
+iret
 .section .text
 
 p:

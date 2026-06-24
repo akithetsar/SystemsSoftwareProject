@@ -8,6 +8,11 @@
 /* =========================
    GLOBAL STATE
    ========================= */
+uint32_t shstrtab_add(const char *str);
+
+uint8_t *shstrtab_data = NULL;
+uint32_t shstrtab_size = 0;
+   
 int litSection;
 int locationCounter = 0;
 
@@ -85,6 +90,10 @@ int create_section(const char *name) {
     sectionDefinitions[idx].relocCount = 0;
     sectionDefinitions[idx].relocCapacity = 16;
     sectionDefinitions[idx].relocs = (Relocation*)calloc(16, sizeof(Relocation));
+    sectionDefinitions[idx].name_offset =
+            shstrtab_add(name);
+            
+
     add_symbol(name, 0x00000000, symbolCount, SYM_SCTN, SYM_LOC, 1);
     return idx;
 }
@@ -1078,6 +1087,181 @@ void emit_symbol_call(char *sym_name)
     }
 }
 
+/* =========================
+   ELF WRITING
+   ========================= */
+
+uint32_t shstrtab_add(const char *str)
+{
+    uint32_t offset = shstrtab_size;
+
+    uint32_t len = strlen(str) + 1;
+
+    shstrtab_data = (uint8_t*)realloc(shstrtab_data, shstrtab_size + len);
+
+    memcpy(shstrtab_data + shstrtab_size, str, len);
+
+    shstrtab_size += len;
+
+    return offset;
+}
+
+int write_elf_file(const char *filename)
+{
+    FILE *f = fopen(filename, "wb");
+    if (!f) {
+        perror("fopen");
+        return 1;
+    }
+
+    // =========================
+    // 1. BUILD SHSTRTAB
+    // =========================
+
+
+    uint32_t shstrtab_name = shstrtab_add(".shstrtab");
+
+    // =========================
+    // 2. SETUP SECTION LAYOUT
+    // =========================
+
+    int secCount = sectionCount;
+
+    int shstrtab_index = secCount + 1;     // after NULL + sections
+    int totalSections  = secCount + 2;     // NULL + sections + shstrtab
+
+    SectionHeader *shdrs =
+        (SectionHeader*)calloc(totalSections, sizeof(SectionHeader));
+
+    // =========================
+    // 3. ELF HEADER
+    // =========================
+
+    ElfHeader eh;
+    memset(&eh, 0, sizeof(eh));
+
+    eh.e_ident[0] = 0x7F;
+    eh.e_ident[1] = 'E';
+    eh.e_ident[2] = 'L';
+    eh.e_ident[3] = 'F';
+
+    eh.e_type    = 1;      // REL (object file)
+    eh.e_machine = 0xAA;    // your ISA
+    eh.e_version = 1;
+
+    eh.e_ehsize     = sizeof(ElfHeader);
+    eh.e_shentsize  = sizeof(SectionHeader);
+    eh.e_shnum      = totalSections;
+
+    eh.e_shstrndx   = shstrtab_index;
+
+    // =========================
+    // 4. SECTION HEADERS (names only)
+    // =========================
+
+    // NULL section
+    shdrs[0].sh_name = 0;
+    shdrs[0].sh_type = 0;
+
+    // user sections
+    for (int i = 0; i < secCount; i++)
+    {
+        SectionDefinition *sec = &sectionDefinitions[i];
+
+        shdrs[i + 1].sh_name = sec->name_offset; // MUST come from shstrtab_add
+        shdrs[i + 1].sh_type = 1; // PROGBITS
+        shdrs[i + 1].sh_size = sec->length;
+        shdrs[i + 1].sh_addralign = 4;
+    }
+
+    // shstrtab section
+    shdrs[shstrtab_index].sh_name = shstrtab_name;
+    shdrs[shstrtab_index].sh_type = 3; // STRTAB
+    shdrs[shstrtab_index].sh_addralign = 1;
+    shdrs[shstrtab_index].sh_size = shstrtab_size;
+
+    // =========================
+    // 5. COMPUTE OFFSETS
+    // =========================
+
+    uint32_t offset =
+        sizeof(ElfHeader) +
+        totalSections * sizeof(SectionHeader);
+
+    offset = (offset + 3) & ~3;
+
+    // section data
+    for (int i = 0; i < secCount; i++)
+    {
+        shdrs[i + 1].sh_offset = offset;
+
+        offset += sectionDefinitions[i].length;
+        offset = (offset + 3) & ~3;
+    }
+
+    // shstrtab
+    shdrs[shstrtab_index].sh_offset = offset;
+    
+
+    offset += shstrtab_size;
+    offset = (offset + 3) & ~3;
+
+    // =========================
+    // 6. WRITE ELF HEADER
+    // =========================
+
+    eh.e_shoff = sizeof(ElfHeader);
+
+    fseek(f, 0, SEEK_SET);
+    fwrite(&eh, sizeof(eh), 1, f);
+
+    // =========================
+    // 7. WRITE SECTION HEADERS
+    // =========================
+
+    fwrite(shdrs, sizeof(SectionHeader), totalSections, f);
+
+    // =========================
+    // 8. WRITE SECTION DATA
+    // =========================
+
+    for (int i = 0; i < secCount; i++)
+    {
+        fwrite(sectionDefinitions[i].data,
+               1,
+               sectionDefinitions[i].length,
+               f);
+
+        while (ftell(f) % 4)
+        {
+            uint8_t pad = 0;
+            fwrite(&pad, 1, 1, f);
+        }
+    }
+
+    // =========================
+    // 9. WRITE SHSTRTAB
+    // =========================
+
+    fwrite(shstrtab_data, 1, shstrtab_size, f);
+
+    while (ftell(f) % 4)
+    {
+        uint8_t pad = 0;
+        fwrite(&pad, 1, 1, f);
+    }
+
+    // =========================
+    // 10. DONE
+    // =========================
+
+    fclose(f);
+    free(shdrs);
+
+    printf("ELF object written successfully\n");
+    return 0;
+}
+
 
 /* =========================
    INIT
@@ -1119,7 +1303,7 @@ int main(int argc, char **argv)
 
     if (argc > 1)
         freopen(argv[1], "r", stdin);
-
+    shstrtab_add(""); 
     init_assembler();
     init_sections();
     init_symbol_table();
@@ -1138,6 +1322,8 @@ int main(int argc, char **argv)
     print_sections_debug();
     print_symbol_table();
     print_relocation_table();
+
+    write_elf_file("./program.o");
     return 0;
 }
 

@@ -541,7 +541,6 @@ instruction:
                     sym = get_symbol($2.sym);
                 }
 
-
                 uint32_t offset =
                     sectionDefinitions[currentSection].length;
 

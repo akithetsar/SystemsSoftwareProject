@@ -2,6 +2,7 @@
   "files.associations": {
     "assembler.h": "c",
     "typeinfo": "c",
-    "stdint.h": "c"
+    "stdint.h": "c",
+    "string.h": "c"
   }
 }

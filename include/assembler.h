@@ -58,6 +58,9 @@ typedef struct {
     Relocation *relocs;
     int relocCount;
     int relocCapacity;
+
+    uint32_t name_offset; // for .shstrtab
+
 } SectionDefinition;
 
 extern SectionDefinition *sectionDefinitions;
@@ -267,4 +270,41 @@ uint32_t form_call_instruction(
 void emit_symbol_call(char *sym_name);
 void emit_large_literal_load(int32_t literal, uint8_t dst_reg);
 void emit_symbol_address_load(char *sym_name, uint8_t dst_reg);
+
+// ELF File writing
+
+typedef struct {
+    uint8_t  e_ident[16];   // "magic" + metadata
+    uint16_t e_type;        // relocatable = 1
+    uint16_t e_machine;     // your custom ISA id
+    uint32_t e_version;
+
+    uint32_t e_entry;       // entry point (you can leave 0 for now)
+    uint32_t e_shoff;       // section header table offset
+
+    uint32_t e_flags;
+    uint16_t e_ehsize;
+
+    uint16_t e_shentsize;
+    uint16_t e_shnum;
+    uint16_t e_shstrndx;
+} ElfHeader;
+
+typedef struct {
+    uint32_t sh_name;      
+    uint32_t sh_type;
+
+    uint32_t sh_flags;
+    uint32_t sh_addr;
+
+    uint32_t sh_offset;    // file offset
+    uint32_t sh_size;
+
+    uint32_t sh_link;
+    uint32_t sh_info;
+
+    uint32_t sh_addralign;
+    uint32_t sh_entsize;
+} SectionHeader;
+
 #endif
