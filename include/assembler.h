@@ -320,4 +320,11 @@ typedef struct
     uint8_t  st_other;
     uint16_t st_shndx;
 } ElfSymbol;
+
+typedef struct {
+    uint32_t r_offset;
+    uint32_t r_info;
+    int32_t  r_addend;
+} ElfRela;
+
 #endif

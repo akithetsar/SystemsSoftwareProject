@@ -1191,8 +1191,20 @@ void build_symtab(void)
     }
 }
 
-
-
+static uint32_t relocation_to_elf(RelocationType t)
+{
+    switch(t)
+    {
+        case ABS32:   return 1;
+        case JMP_LIT: return 2;
+        case PCREL12: return 3;
+        default:      return 0;
+    }
+}
+static uint32_t make_r_info(int sym, int type)
+{
+    return ((sym << 8) | (type & 0xff));
+}
 int write_elf_file(const char *filename)
 {
 
@@ -1213,14 +1225,21 @@ int write_elf_file(const char *filename)
     // =========================
     // 2. SETUP SECTION LAYOUT
     // =========================
+int rela_section_count = 0;
 
+for (int i = 0; i < sectionCount; i++)
+{
+    if (sectionDefinitions[i].relocCount > 0)
+        rela_section_count++;
+}
     int secCount = sectionCount;
 
     int strtab_index   = secCount + 1;
     int shstrtab_index = secCount + 2;
     int symtab_index = secCount + 3;
-    int totalSections  = secCount + 4;
-    
+    int totalSections  = secCount + 4 + rela_section_count;
+    int rela_start = secCount + 4;
+    int rela_idx = rela_start;
     SectionHeader *shdrs =
         (SectionHeader*)calloc(totalSections, sizeof(SectionHeader));
 
@@ -1263,7 +1282,7 @@ int write_elf_file(const char *filename)
     // NULL section
     shdrs[0].sh_name = 0;
     shdrs[0].sh_type = 0;
-
+int section_index_map[MAX_SECTIONS];
     // user sections
     for (int i = 0; i < secCount; i++)
     {
@@ -1273,6 +1292,7 @@ int write_elf_file(const char *filename)
         shdrs[i + 1].sh_type = 1; // PROGBITS
         shdrs[i + 1].sh_size = sec->length;
         shdrs[i + 1].sh_addralign = 4;
+        section_index_map[i] = i + 1;
     }
 build_symtab();
     // shstrtab section
@@ -1310,8 +1330,33 @@ for (int i = 0; i < symbolCount; i++)
 
     shdrs[symtab_index].sh_addralign = 4;
     shdrs[symtab_index].sh_entsize = sizeof(ElfSymbol);
+//relocs
 
+for (int i = 0; i < sectionCount; i++)
+{
+    SectionDefinition *sec = &sectionDefinitions[i];
 
+    if (sec->relocCount == 0)
+        continue;
+
+    char rela_name[128];
+    sprintf(rela_name, ".rela%s", sec->name);
+
+    uint32_t name_off = shstrtab_add(rela_name);
+
+    shdrs[rela_idx].sh_name = name_off;
+    shdrs[rela_idx].sh_type = 4; // SHT_RELA
+    shdrs[rela_idx].sh_addralign = 4;
+    shdrs[rela_idx].sh_entsize = sizeof(ElfRela);
+    shdrs[rela_idx].sh_size = sec->relocCount * sizeof(ElfRela);
+
+    // link to symtab
+    shdrs[rela_idx].sh_link = symtab_index;
+
+    // IMPORTANT: section index this reloc applies to
+    shdrs[rela_idx].sh_info = section_index_map[i];
+    rela_idx++;
+}
     // =========================
     // 5. COMPUTE OFFSETS
     // =========================
@@ -1343,6 +1388,14 @@ for (int i = 0; i < symbolCount; i++)
     offset += symtab_size;
     offset = (offset + 3) & ~3;
 
+for (int i = 0; i < totalSections; i++) {
+    if (shdrs[i].sh_type != 4) continue; // SHT_RELA
+
+    shdrs[i].sh_offset = offset;
+
+    offset += shdrs[i].sh_size;
+    offset = (offset + 3) & ~3;
+}
     // shstrtab
     shdrs[shstrtab_index].sh_offset = offset;
     
@@ -1399,6 +1452,37 @@ for (int i = 0; i < symbolCount; i++)
     printf("symtab_size = %u\n", symtab_size);
     fwrite(symtab_data, sizeof(ElfSymbol), symbolCount, f);
 
+printf("REL COUNT TOTAL:\n");
+for (int i = 0; i < sectionCount; i++)
+{
+    printf("%s -> %d\n",
+        sectionDefinitions[i].name,
+        sectionDefinitions[i].relocCount);
+}
+for (int i = 0; i < sectionCount; i++)
+{
+    SectionDefinition *sec = &sectionDefinitions[i];
+
+    if (sec->relocCount == 0)
+        continue;
+
+    for (int r = 0; r < sec->relocCount; r++)
+    {
+        Relocation *rel = &sec->relocs[r];
+
+        ElfRela e;
+
+        e.r_offset = rel->offset;
+        e.r_addend = rel->addend;
+
+        e.r_info = make_r_info(
+            rel->symbolIndex,
+            relocation_to_elf(rel->type)
+        );
+
+        fwrite(&e, sizeof(ElfRela), 1, f);
+    }
+}
     while (ftell(f) % 4)
     {
         uint8_t pad = 0;
