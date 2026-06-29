@@ -103,6 +103,7 @@ typedef struct {
     char *name;
     int defined;
     ST_ForwardRefs *flink;
+    uint32_t name_offset;
 } Symbol;
 
 extern Symbol *symbolTable;
@@ -280,10 +281,13 @@ typedef struct {
     uint32_t e_version;
 
     uint32_t e_entry;       // entry point (you can leave 0 for now)
+    uint32_t e_phoff;      // <-- missing
     uint32_t e_shoff;       // section header table offset
 
     uint32_t e_flags;
     uint16_t e_ehsize;
+    uint16_t e_phentsize;  // <-- missing
+    uint16_t e_phnum;      // <-- missing
 
     uint16_t e_shentsize;
     uint16_t e_shnum;
@@ -307,4 +311,13 @@ typedef struct {
     uint32_t sh_entsize;
 } SectionHeader;
 
+typedef struct
+{
+    uint32_t st_name;
+    uint32_t st_value;
+    uint32_t st_size;
+    uint8_t  st_info;
+    uint8_t  st_other;
+    uint16_t st_shndx;
+} ElfSymbol;
 #endif

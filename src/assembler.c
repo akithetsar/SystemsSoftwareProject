@@ -13,6 +13,14 @@ uint32_t shstrtab_add(const char *str);
 uint8_t *shstrtab_data = NULL;
 uint32_t shstrtab_size = 0;
    
+uint8_t *strtab_data = NULL;
+uint32_t strtab_size = 0;
+uint32_t strtab_add(const char *str);
+
+ElfSymbol *symtab_data = NULL;
+uint32_t symtab_size = 0;
+
+
 int litSection;
 int locationCounter = 0;
 
@@ -307,6 +315,7 @@ int add_symbol(
     symbolTable[idx].ndx = ndx;
 
     symbolTable[idx].name = strdup(name);
+    symbolTable[idx].name_offset = strtab_add(name);
 
     symbolTable[idx].defined = defined;
     symbolTable[idx].flink = NULL;
@@ -1106,8 +1115,87 @@ uint32_t shstrtab_add(const char *str)
     return offset;
 }
 
+uint32_t strtab_add(const char *str)
+{
+    uint32_t offset = strtab_size;
+
+    uint32_t len = strlen(str) + 1;
+
+    strtab_data = (uint8_t*)realloc(strtab_data, strtab_size + len);
+
+    memcpy(strtab_data + strtab_size, str, len);
+
+    strtab_size += len;
+
+    return offset;
+}
+
+uint16_t get_elf_section_index(const char *section_name)
+{
+    int idx = find_section(section_name);
+    if (idx < 0)
+        return 0; // SHN_UNDEF
+
+    return (uint16_t)(idx + 1); 
+    // +1 because ELF section 0 is NULL
+}
+
+void build_symtab(void)
+{
+    symtab_size = symbolCount * sizeof(ElfSymbol);
+
+    symtab_data = (ElfSymbol*)calloc(symbolCount, sizeof(ElfSymbol));
+
+    for (int i = 0; i < symbolCount; i++)
+    {
+        Symbol *s = &symbolTable[i];
+        ElfSymbol *e = &symtab_data[i];
+
+        // name
+        e->st_name = s->name_offset;
+
+        // value
+        e->st_value = s->value;
+
+        // size (you currently don't compute it → OK for now)
+        e->st_size = s->size;
+
+        // bind + type
+        e->st_info =
+            ((s->bind & 0xF) << 4) |
+            (s->type & 0xF);
+
+        e->st_other = 0;
+
+        // section index
+        if (!s->defined)
+        {
+            e->st_shndx = 0; // SHN_UNDEF
+        }
+        else if (s->type == SYM_SCTN)
+        {
+            // section symbol → its own section
+            e->st_shndx = get_elf_section_index(s->name);
+        }
+        else
+        {
+            // normal symbol → belongs to its section
+            const char *sec_name =
+                get_symbols_section_name(s->name);
+
+            if (sec_name)
+                e->st_shndx = get_elf_section_index(sec_name);
+            else
+                e->st_shndx = 0;
+        }
+    }
+}
+
+
+
 int write_elf_file(const char *filename)
 {
+
     FILE *f = fopen(filename, "wb");
     if (!f) {
         perror("fopen");
@@ -1120,16 +1208,19 @@ int write_elf_file(const char *filename)
 
 
     uint32_t shstrtab_name = shstrtab_add(".shstrtab");
-
+    uint32_t strtab_name = shstrtab_add(".strtab");
+    uint32_t symtab_name = shstrtab_add(".symtab");
     // =========================
     // 2. SETUP SECTION LAYOUT
     // =========================
 
     int secCount = sectionCount;
 
-    int shstrtab_index = secCount + 1;     // after NULL + sections
-    int totalSections  = secCount + 2;     // NULL + sections + shstrtab
-
+    int strtab_index   = secCount + 1;
+    int shstrtab_index = secCount + 2;
+    int symtab_index = secCount + 3;
+    int totalSections  = secCount + 4;
+    
     SectionHeader *shdrs =
         (SectionHeader*)calloc(totalSections, sizeof(SectionHeader));
 
@@ -1140,14 +1231,24 @@ int write_elf_file(const char *filename)
     ElfHeader eh;
     memset(&eh, 0, sizeof(eh));
 
-    eh.e_ident[0] = 0x7F;
+    memset(eh.e_ident, 0, 16);
+
+    eh.e_ident[0] = 0x7f;
     eh.e_ident[1] = 'E';
     eh.e_ident[2] = 'L';
     eh.e_ident[3] = 'F';
 
+    eh.e_ident[4] = 1; // ELFCLASS32
+    eh.e_ident[5] = 1; // little endian
+    eh.e_ident[6] = 1; // current version
+
     eh.e_type    = 1;      // REL (object file)
     eh.e_machine = 0xAA;    // your ISA
     eh.e_version = 1;
+
+    eh.e_phoff = 0;
+    eh.e_phentsize = 0;
+    eh.e_phnum = 0;
 
     eh.e_ehsize     = sizeof(ElfHeader);
     eh.e_shentsize  = sizeof(SectionHeader);
@@ -1173,12 +1274,43 @@ int write_elf_file(const char *filename)
         shdrs[i + 1].sh_size = sec->length;
         shdrs[i + 1].sh_addralign = 4;
     }
-
+build_symtab();
     // shstrtab section
     shdrs[shstrtab_index].sh_name = shstrtab_name;
     shdrs[shstrtab_index].sh_type = 3; // STRTAB
     shdrs[shstrtab_index].sh_addralign = 1;
     shdrs[shstrtab_index].sh_size = shstrtab_size;
+
+    // strtab section
+    shdrs[strtab_index].sh_name      = strtab_name;
+    shdrs[strtab_index].sh_type      = 3;      // SHT_STRTAB
+    shdrs[strtab_index].sh_addralign = 1;
+    shdrs[strtab_index].sh_size      = strtab_size;
+
+
+    shdrs[symtab_index].sh_name = symtab_name;
+    shdrs[symtab_index].sh_type = 2; // SHT_SYMTAB
+    shdrs[symtab_index].sh_flags = 0;
+    shdrs[symtab_index].sh_addr = 0;
+
+    shdrs[symtab_index].sh_offset = 0; // filled later
+    shdrs[symtab_index].sh_size = symtab_size;
+
+    shdrs[symtab_index].sh_link = strtab_index; // IMPORTANT
+    int last_local = 0;
+
+for (int i = 0; i < symbolCount; i++)
+{
+    if (symbolTable[i].bind == SYM_LOC)
+    {
+        last_local = i;
+    }
+}
+    shdrs[symtab_index].sh_info = last_local + 1;
+
+    shdrs[symtab_index].sh_addralign = 4;
+    shdrs[symtab_index].sh_entsize = sizeof(ElfSymbol);
+
 
     // =========================
     // 5. COMPUTE OFFSETS
@@ -1198,6 +1330,18 @@ int write_elf_file(const char *filename)
         offset += sectionDefinitions[i].length;
         offset = (offset + 3) & ~3;
     }
+
+    // strtab
+    shdrs[strtab_index].sh_offset = offset;
+
+    offset += strtab_size;
+    offset = (offset + 3) & ~3;
+
+    // SYMTAB
+    shdrs[symtab_index].sh_offset = offset;
+
+    offset += symtab_size;
+    offset = (offset + 3) & ~3;
 
     // shstrtab
     shdrs[shstrtab_index].sh_offset = offset;
@@ -1243,6 +1387,23 @@ int write_elf_file(const char *filename)
     // 9. WRITE SHSTRTAB
     // =========================
 
+    fwrite(strtab_data, 1, strtab_size, f);
+
+    while (ftell(f) % 4)
+    {
+        uint8_t pad = 0;
+        fwrite(&pad, 1, 1, f);
+    }
+    
+    printf("symbolCount = %d\n", symbolCount);
+    printf("symtab_size = %u\n", symtab_size);
+    fwrite(symtab_data, sizeof(ElfSymbol), symbolCount, f);
+
+    while (ftell(f) % 4)
+    {
+        uint8_t pad = 0;
+        fwrite(&pad, 1, 1, f);
+    }
     fwrite(shstrtab_data, 1, shstrtab_size, f);
 
     while (ftell(f) % 4)
@@ -1304,6 +1465,7 @@ int main(int argc, char **argv)
     if (argc > 1)
         freopen(argv[1], "r", stdin);
     shstrtab_add(""); 
+    strtab_add("");
     init_assembler();
     init_sections();
     init_symbol_table();
