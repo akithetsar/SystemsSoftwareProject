@@ -2,7 +2,7 @@
 # DIRECTIVES
 # =========================================================
 
-.global start, testSymbol
+.global start, test_Symbol
 .global sym1, sym2, sym3, DATAGLOB
 
 .extern ext1 
