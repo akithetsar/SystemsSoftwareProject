@@ -3,6 +3,9 @@
     "assembler.h": "c",
     "typeinfo": "c",
     "stdint.h": "c",
-    "string.h": "c"
+    "string.h": "c",
+    "literal_pool.h": "c",
+    "stdio.h": "c",
+    "elf_writer.h": "c"
   }
 }

@@ -10,10 +10,14 @@ BISON_SRC = $(BUILD)/parser.tab.c
 BISON_HDR = $(BUILD)/parser.tab.h
 FLEX_SRC  = $(BUILD)/lex.yy.c
 
+# Automatically pick up every .c file in src/
+SRC_FILES = $(wildcard $(SRC)/*.c)
+SRC_OBJS  = $(patsubst $(SRC)/%.c,$(BUILD)/%.o,$(SRC_FILES))
+
 OBJS = \
 	$(BUILD)/parser.tab.o \
 	$(BUILD)/lex.yy.o \
-	$(BUILD)/assembler.o
+	$(SRC_OBJS)
 
 all: $(BUILD) $(TARGET)
 
@@ -48,10 +52,10 @@ $(BUILD)/lex.yy.o: $(FLEX_SRC)
 	$(CC) $(CFLAGS) -c $(FLEX_SRC) -o $@
 
 # ------------------------
-# your code
+# your code (pattern rule covers every src/*.c -> build/*.o)
 # ------------------------
-$(BUILD)/assembler.o: $(SRC)/assembler.c
-	$(CC) $(CFLAGS) -c $(SRC)/assembler.c -o $@
+$(BUILD)/%.o: $(SRC)/%.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
 # ------------------------
 # link everything
