@@ -3,6 +3,10 @@
 
 
 #include <stdint.h>
+
+
+
+
 typedef struct {
     uint8_t  e_ident[16];   // "magic" + metadata
     uint16_t e_type;        // relocatable = 1
@@ -56,6 +60,17 @@ typedef struct {
     int32_t  r_addend;
 } ElfRela;
 int write_elf_file(const char *filename);
+uint32_t shstrtab_add(const char *str);
+
+extern uint8_t *shstrtab_data;
+extern uint32_t shstrtab_size;
+   
+extern uint8_t *strtab_data;
+extern uint32_t strtab_size;
+extern uint32_t strtab_add(const char *str);
+
+extern ElfSymbol *symtab_data;
+extern uint32_t symtab_size;
 
 
 #endif

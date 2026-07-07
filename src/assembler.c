@@ -9,20 +9,6 @@
 /* =========================
    GLOBAL STATE
    ========================= */
-uint32_t shstrtab_add(const char *str);
-
-uint8_t *shstrtab_data = NULL;
-uint32_t shstrtab_size = 0;
-   
-uint8_t *strtab_data = NULL;
-uint32_t strtab_size = 0;
-uint32_t strtab_add(const char *str);
-
-ElfSymbol *symtab_data = NULL;
-uint32_t symtab_size = 0;
-
-
-int litSection = 0;
 
 
 
@@ -34,42 +20,6 @@ int add_symbol(
     SymbolBind bind,
     int defined
 );
-
-/* =========================
-   SECTIONS
-   ========================= */
-
-/* =========================
-   SYMBOL TABLE
-   ========================= */
-
-
-
-
-/* =========================
-   RELOCATIONS
-   ========================= */
-
-/* =========================
-   Literal Pool
-   ========================= */
-
-/* =========================
-   ENCODING
-   ========================= */
-
-
-/* =========================
-   ELF WRITING
-   ========================= */
-
-
-
-/* =========================
-   INIT
-   ========================= */
-
-
 
 
 int main(int argc, char **argv)

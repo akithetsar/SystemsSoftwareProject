@@ -32,5 +32,6 @@ int32_t calculate_literal_displacement(
     uint32_t instructionOffset,
     LiteralPoolEntry *entry
 );
+extern int litSection;
 
 #endif

@@ -5,6 +5,21 @@
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
+
+uint32_t shstrtab_add(const char *str);
+
+uint8_t *shstrtab_data = NULL;
+uint32_t shstrtab_size = 0;
+   
+uint8_t *strtab_data = NULL;
+uint32_t strtab_size = 0;
+uint32_t strtab_add(const char *str);
+
+ElfSymbol *symtab_data = NULL;
+uint32_t symtab_size = 0;
+
+
+
 uint32_t shstrtab_add(const char *str)
 {
     uint32_t offset = shstrtab_size;

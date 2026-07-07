@@ -6,6 +6,7 @@
     "string.h": "c",
     "literal_pool.h": "c",
     "stdio.h": "c",
-    "elf_writer.h": "c"
+    "elf_writer.h": "c",
+    "symbol_table.h": "c"
   }
 }

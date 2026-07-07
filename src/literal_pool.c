@@ -10,6 +10,7 @@ LiteralPoolEntry *literalPool = NULL;
 int literalPoolCount = 0;
 int literalPoolCapacity = 0;
 
+int litSection = 0;
 
 
 void init_literal_pool()
