@@ -4,24 +4,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-
-extern int locationCounter;
-
-int init_assembler();
-int write_output_file(const char *filename);
-
-/* ---------------- Output buffer ---------------- */
-
-typedef struct {
-    uint8_t *data;
-    uint32_t size;
-    uint32_t capacity;
-} OutputContent;
-
-extern OutputContent outputContent;
-
-void emit_byte(uint8_t byte);
-
 /* ---------------- Sections ---------------- */
 // REALLOCATIONS
 

@@ -22,9 +22,8 @@ uint32_t symtab_size = 0;
 
 
 int litSection;
-int locationCounter = 0;
 
-OutputContent outputContent;
+
 
 #define MAX_SECTIONS 64
 
@@ -49,27 +48,7 @@ int add_symbol(
     SymbolBind bind,
     int defined
 );
-/* =========================
-   OUTPUT BUFFER
-   ========================= */
 
-static void ensure_capacity(uint32_t needed) {
-    if (outputContent.capacity >= needed)
-        return;
-
-    uint32_t newCap = (outputContent.capacity == 0) ? 64 : outputContent.capacity;
-
-    while (newCap < needed)
-        newCap *= 2;
-
-    outputContent.data = (uint8_t*)realloc(outputContent.data, newCap);
-    outputContent.capacity = newCap;
-}
-
-void emit_byte(uint8_t byte) {
-    ensure_capacity(outputContent.size + 1);
-    outputContent.data[outputContent.size++] = byte;
-}
 /* =========================
    SECTIONS
    ========================= */
@@ -1512,51 +1491,21 @@ for (int i = 0; i < sectionCount; i++)
    INIT
    ========================= */
 
-int init_assembler() {
-    locationCounter = 0;
 
-    outputContent.data = NULL;
-    outputContent.size = 0;
-    outputContent.capacity = 0;
 
-    return 0;
-}
-
-int write_output_file(const char *filename)
-{
-    FILE *f = fopen(filename, "wb");
-    if (!f)
-    {
-        perror("fopen");
-        return 1;
-    }
-
-    fwrite(outputContent.data, 1, outputContent.size, f);
-
-    fclose(f);
-
-    printf("Wrote %u bytes to %s\n",
-           outputContent.size,
-           filename);
-
-    return 0;
-}
 
 int main(int argc, char **argv)
 {
-    const char *out = "out.bin";
 
     if (argc > 1)
         freopen(argv[1], "r", stdin);
     shstrtab_add(""); 
     strtab_add("");
-    init_assembler();
     init_sections();
     init_symbol_table();
     init_literal_pool();    
     litSection = create_section(".lit");
     printf("Assembler initialized\n");
-    printf("locationCounter=%i\n", locationCounter);
 
     int code = yyparse();
     if(code == 1){
@@ -1564,11 +1513,9 @@ int main(int argc, char **argv)
         return 1;
     }
     printf("Parsing finished with code: %i\n", code);
-    write_output_file(out);
     print_sections_debug();
     print_symbol_table();
     print_relocation_table();
-
     write_elf_file("./program.o");
     return 0;
 }
