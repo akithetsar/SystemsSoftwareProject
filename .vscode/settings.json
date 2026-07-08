@@ -8,5 +8,7 @@
     "stdio.h": "c",
     "elf_writer.h": "c",
     "symbol_table.h": "c"
-  }
+  },
+  "editor.occurrencesHighlight": "off",
+  "editor.selectionHighlight": false
 }

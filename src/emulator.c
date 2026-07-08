@@ -29,6 +29,7 @@ void cpu_destroy(CPU *cpu) {
 void cpu_reset(CPU *cpu) {
     /* r0 stays hardwired to 0; pc goes to the reset vector */
     cpu->gpr[PC_REG] = RESET_VECTOR;
+    cpu->gpr[SP_REG] = RAM_END;
 }
 
 /* -------------------------
@@ -174,7 +175,7 @@ void cpu_step(CPU *cpu) {
     // printf("%2x\n", b2);
     // printf("%2x\n", b3);
     int invalid = 0;
-
+    cpu->gpr[PC_REG] = pc + 4;
     switch (oc) {
 
     case 0x0: /* halt */
@@ -182,6 +183,7 @@ void cpu_step(CPU *cpu) {
         break;
 
     case 0x1: /* software interrupt */
+        if (cpu->status & STATUS_I_MASK) break;
         cpu->gpr[SP_REG] -= 4;
         mem_write32(cpu, cpu->gpr[SP_REG], cpu->status);
         cpu->gpr[SP_REG] -= 4;
@@ -195,12 +197,12 @@ void cpu_step(CPU *cpu) {
         switch (mod) {
             case 0x0: /* push pc; pc <= gpr[A]+gpr[B]+D */
                 cpu->gpr[SP_REG] -= 4;
-                mem_write32(cpu, cpu->gpr[SP_REG], cpu->gpr[PC_REG]+4);
+                mem_write32(cpu, cpu->gpr[SP_REG], cpu->gpr[PC_REG]);
                 cpu->gpr[PC_REG] = cpu->gpr[a] + cpu->gpr[b] + d;
                 break;
             case 0x1: /* push pc; pc <= mem32[gpr[A]+gpr[B]+D] */
                 cpu->gpr[SP_REG] -= 4;
-                mem_write32(cpu, cpu->gpr[SP_REG], cpu->gpr[PC_REG]+4);
+                mem_write32(cpu, cpu->gpr[SP_REG], cpu->gpr[PC_REG]);
                 cpu->gpr[PC_REG] = mem_read32(cpu, cpu->gpr[a] + cpu->gpr[b] + d);
                 break;
             default: invalid = 1; break;
@@ -300,8 +302,9 @@ void cpu_step(CPU *cpu) {
     }
 
     cpu->gpr[0] = 0; /* r0 hardwired to zero, enforced after every step */
-    cpu->gpr[PC_REG] = pc + 4;
+    
     if (invalid) {
+        printf("Invalid instruction");
         cpu->gpr[SP_REG] -= 4;
         mem_write32(cpu, cpu->gpr[SP_REG], cpu->status);
         cpu->gpr[SP_REG] -= 4;
@@ -361,7 +364,7 @@ int load_hex_file(CPU *cpu, const char *filename) {
     return 0;
 }
 static void print_state(const CPU *cpu, int cycle) {
-    printf("----- cycle %d (pc=0x%08X) -----\n", cycle, cpu->gpr[PC_REG]);
+    printf("----- state at cycle %d (after instruction at pc=0x%08X) -----\n", cycle, cpu->gpr[PC_REG] - 4);
     for (int i = 0; i < NUM_GPR; i++) {
         printf("r%-2d=0x%08X%s", i, cpu->gpr[i], ((i + 1) % 4 == 0) ? "\n" : " ");
     }

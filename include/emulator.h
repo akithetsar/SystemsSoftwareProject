@@ -10,7 +10,7 @@
 
 #define RAM_BASE     0x40000000u
 #define RAM_SIZE     (1 * 1024 * 1024)   /* 1 MiB */
-
+#define RAM_END      RAM_BASE + RAM_SIZE
 #define MMIO_BASE    0xFFFFFF00u
 #define MMIO_SIZE    256u
 /* =========================

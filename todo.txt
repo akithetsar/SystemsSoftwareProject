@@ -1,0 +1,1 @@
+1. handler can be a name of symbol in assembler, but is used to address %handler register aswell which causes a syntax error bug fix it
