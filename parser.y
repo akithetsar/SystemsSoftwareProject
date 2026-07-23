@@ -203,7 +203,7 @@ instruction:
             else if($2.kind == ITEM_LITERAL)
             {
                 int32_t d = $2.value;
-
+                
                 if(d >= -2048 && d <= 2047)
                 {
                     uint32_t instr =

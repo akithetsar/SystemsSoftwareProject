@@ -15,7 +15,7 @@ typedef struct Relocation {
 } Relocation;
 
 void init_relocations();
-
+// upisuje u d = relocation.addend - (section_base + relocation.offset + 4);
 void add_relocation(
     int section,
     uint32_t offset,

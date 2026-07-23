@@ -8,8 +8,6 @@
 .extern ext1 
 
 
-.section .gay
-iret
 .section .text
 
 p:
@@ -158,9 +156,7 @@ ld $0x1234, %r2
 ld $symbol1, %r3
 symbol1:
 
-ld 100, %r4
-ld 0x200, %r5
-
+ld 0x01000078, %r4
 
 
 ld %r7, %r8
@@ -173,14 +169,13 @@ ld [%r7 + 16], %r8
 
 ld [%r9 + symbol3], %r10
 # ld [%r11 + symbol4], %r12
-
+call 0xF0000000
 # =========================================================
 # ST OPERANDS
 # =========================================================
 symbol6:
 symbol7:
-st %r1, 100
-st %r2, 0x300
+
 
 
 st %r6, [%r7]
@@ -202,6 +197,8 @@ csrrd %cause, %r3
 csrwr %r4, %status
 csrwr %r5, %handler
 csrwr %r6, %cause
+
+
 
 # =========================================================
 # LABEL + INSTRUCTION SAME LINE

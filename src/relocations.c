@@ -71,17 +71,18 @@ void print_relocation_table()
                "Offset",
                "Type",
                "Symbol",
-               "SymbolNdx");
+               "SymbolNdx",
+            "Addend");
 
         for (int i = 0; i < sec->relocCount; i++)
         {
             Relocation *rel =
                 &sec->relocs[i];
 
-            printf("%08X %-10s %-10s %-10i\n",
+            printf("%08X %-10s %-10s %-10i %-10i\n",
                    rel->offset,
                    relocation_type_to_string(rel->type),
-                   symbolTable[rel->symbolIndex].name, rel->symbolIndex);
+                   symbolTable[rel->symbolIndex].name, rel->symbolIndex, rel->addend);
         }
     }
 }

@@ -2,6 +2,7 @@
 #include "../include/object_reader.h"
 #include "../include/section_placer.h"
 #include "../include/symbol_resolver.h"
+#include "../include/relocator.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -177,6 +178,16 @@ int main(int argc, char **argv) {
         return 1;
     }
     print_resolved_symbols(objs, cfg.inputCount);
+    if (apply_relocations(objs, cfg.inputCount) != 0) {
+        fprintf(stderr, "linker: relocation failed\n");
+        free(merged);
+        for (int i = 0; i < cfg.inputCount; i++)
+            free_object_file(&objs[i]);
+        free(objs);
+        return 1;
+    }
+    print_resolved_symbols(objs, cfg.inputCount);
+
     /* TODO: symbol resolution   -- symbol_resolver.c
        TODO: relocation          -- relocator.c
        TODO: -hex / -relocatable output -- output_writer.c */
