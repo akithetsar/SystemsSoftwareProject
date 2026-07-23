@@ -194,7 +194,7 @@ void emit_large_literal_load(int32_t literal, uint8_t dst_reg)
         add_symbol(
             name,
             (uint32_t)literal,
-            find_section(sectionDefinitions[litSection].name),
+            litSection+1,
             SYM_NOTYP,
             SYM_LOC,
             1

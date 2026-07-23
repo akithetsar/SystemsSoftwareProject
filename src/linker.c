@@ -1,6 +1,7 @@
 #include "../include/linker.h"
 #include "../include/object_reader.h"
 #include "../include/section_placer.h"
+#include "../include/symbol_resolver.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -119,13 +120,20 @@ void print_linker_config(const LinkerConfig *cfg) {
 }
 
 
-
-#include "../include/linker.h"
-#include "../include/object_reader.h"
-#include "../include/section_placer.h"
-#include <stdio.h>
-#include <stdlib.h>
-
+static void print_resolved_symbols(ObjectFile *objs, int objCount) {
+    printf("Resolved symbols:\n");
+    for (int i = 0; i < objCount; i++) {
+        ObjectFile *obj = &objs[i];
+        for (int s = 0; s < obj->symbolCount; s++) {
+            ObjSymbol *sym = &obj->symbols[s];
+            printf("  %-20s final_addr=0x%08X  (from %s, %s)\n",
+                   sym->name,
+                   sym->final_addr,
+                   obj->filename,
+                   sym->obj_section_idx >= 0 ? "defined here" : "resolved via extern");
+        }
+    }
+}
 int main(int argc, char **argv) {
     LinkerConfig cfg;
 
@@ -136,7 +144,7 @@ int main(int argc, char **argv) {
     print_linker_config(&cfg);
 
     /* read every input object file */
-    ObjectFile *objs = calloc(cfg.inputCount, sizeof(ObjectFile));
+    ObjectFile *objs = (ObjectFile*)calloc(cfg.inputCount, sizeof(ObjectFile));
 
     for (int i = 0; i < cfg.inputCount; i++) {
         if (read_object_file(cfg.input_files[i], &objs[i]) != 0) {
@@ -160,7 +168,15 @@ int main(int argc, char **argv) {
     }
 
     print_merged_sections(merged, mergedCount);
-
+    if(resolve_symbols(objs, cfg.inputCount) != 0) {
+        fprintf(stderr, "linker: symbol resolution failed\n");
+        free(merged);
+        for (int i = 0; i < cfg.inputCount; i++)
+            free_object_file(&objs[i]);
+        free(objs);
+        return 1;
+    }
+    print_resolved_symbols(objs, cfg.inputCount);
     /* TODO: symbol resolution   -- symbol_resolver.c
        TODO: relocation          -- relocator.c
        TODO: -hex / -relocatable output -- output_writer.c */

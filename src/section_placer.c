@@ -18,7 +18,7 @@ static MergedBuild *find_or_add(MergedBuild **list, int *count, int *capacity, c
 
     if (*count == *capacity) {
         *capacity = *capacity ? *capacity * 2 : 8;
-        *list = realloc(*list, (*capacity) * sizeof(MergedBuild));
+        *list = (MergedBuild*)realloc(*list, (*capacity) * sizeof(MergedBuild));
     }
 
     MergedBuild *m = &(*list)[*count];
@@ -92,7 +92,7 @@ int place_sections(ObjectFile *objs, int objCount,
         }
     }
 
-    int *order = malloc(count * sizeof(int));
+    int *order = (int*)malloc(count * sizeof(int));
     for (int i = 0; i < count; i++) order[i] = i;
 
     for (int i = 0; i < count; i++)
@@ -125,7 +125,7 @@ int place_sections(ObjectFile *objs, int objCount,
         return -1;
     }
 
-    MergedSection *merged = malloc(count * sizeof(MergedSection));
+    MergedSection *merged = (MergedSection*)malloc(count * sizeof(MergedSection));
     for (int i = 0; i < count; i++) {
         merged[i].name = list[i].name;
         merged[i].base = list[i].base;

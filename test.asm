@@ -3,12 +3,10 @@
 # =========================================================
 
 .global start, test_Symbol
-.global sym1, sym2, sym3, DATAGLOB
+
 
 .extern ext1 
-.extern ext2, ext3, ext4
 
-.extern symbol4
 
 .section .gay
 iret
@@ -37,9 +35,7 @@ iret
 .word 0 
 .word 1, 2, 3
 .word 0x10, 0x20, 0x30
-.word sym1
-.word sym1, sym2, sym3
-.word 1, sym1, 2, sym2
+
 .word testSymbol
 post:
 .skip 0
@@ -165,7 +161,7 @@ symbol1:
 ld 100, %r4
 ld 0x200, %r5
 
-ld symbol2, %r6
+
 
 ld %r7, %r8
 
@@ -186,7 +182,6 @@ symbol7:
 st %r1, 100
 st %r2, 0x300
 
-st %r3, symbol5
 
 st %r6, [%r7]
 

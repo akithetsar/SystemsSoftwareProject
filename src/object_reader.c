@@ -63,7 +63,7 @@ typedef struct {
 
 static char *dupstr(const char *s) {
     size_t n = strlen(s) + 1;
-    char *r = malloc(n);
+    char *r = (char*)malloc(n);
     memcpy(r, s, n);
     return r;
 }
@@ -76,7 +76,7 @@ static ObjSection *find_section_by_raw_index(ObjectFile *obj, int raw_idx) {
 }
 
 static void add_reloc(ObjSection *sec, ObjReloc r) {
-    sec->relocs = realloc(sec->relocs, (sec->relocCount + 1) * sizeof(ObjReloc));
+    sec->relocs = (ObjReloc*)realloc(sec->relocs, (sec->relocCount + 1) * sizeof(ObjReloc));
     sec->relocs[sec->relocCount++] = r;
 }
 
@@ -104,7 +104,7 @@ int read_object_file(const char *path, ObjectFile *out) {
         return -1;
     }
 
-    RawSectionHeader *shdrs = malloc(eh.e_shnum * sizeof(RawSectionHeader));
+    RawSectionHeader *shdrs = (RawSectionHeader*)malloc(eh.e_shnum * sizeof(RawSectionHeader));
     fseek(f, eh.e_shoff, SEEK_SET);
     if (fread(shdrs, sizeof(RawSectionHeader), eh.e_shnum, f) != eh.e_shnum) {
         fprintf(stderr, "linker: '%s': failed to read section headers\n", path);
@@ -114,7 +114,7 @@ int read_object_file(const char *path, ObjectFile *out) {
     }
 
     RawSectionHeader *shstrtab_hdr = &shdrs[eh.e_shstrndx];
-    char *shstrtab = malloc(shstrtab_hdr->sh_size);
+    char *shstrtab = (char*)malloc(shstrtab_hdr->sh_size);
     fseek(f, shstrtab_hdr->sh_offset, SEEK_SET);
     fread(shstrtab, 1, shstrtab_hdr->sh_size, f);
 
@@ -134,12 +134,12 @@ int read_object_file(const char *path, ObjectFile *out) {
         RawSectionHeader *symtab_hdr = &shdrs[symtab_hdr_idx];
         RawSectionHeader *strtab_hdr = &shdrs[symtab_hdr->sh_link];
 
-        strtab = malloc(strtab_hdr->sh_size);
+        strtab = (char*)malloc(strtab_hdr->sh_size);
         fseek(f, strtab_hdr->sh_offset, SEEK_SET);
         fread(strtab, 1, strtab_hdr->sh_size, f);
 
         raw_symbol_count = symtab_hdr->sh_size / sizeof(RawElfSymbol);
-        raw_symbols = malloc(symtab_hdr->sh_size);
+        raw_symbols = (RawElfSymbol*)malloc(symtab_hdr->sh_size);
         fseek(f, symtab_hdr->sh_offset, SEEK_SET);
         fread(raw_symbols, sizeof(RawElfSymbol), raw_symbol_count, f);
     }
@@ -148,7 +148,7 @@ int read_object_file(const char *path, ObjectFile *out) {
         if (shdrs[i].sh_type != SHT_PROGBITS)
             continue;
 
-        out->sections = realloc(out->sections, (out->sectionCount + 1) * sizeof(ObjSection));
+        out->sections = (ObjSection*)realloc(out->sections, (out->sectionCount + 1) * sizeof(ObjSection));
         ObjSection *sec = &out->sections[out->sectionCount++];
         memset(sec, 0, sizeof(*sec));
 
@@ -158,14 +158,14 @@ int read_object_file(const char *path, ObjectFile *out) {
         sec->final_base = 0;
 
         if (sec->size > 0) {
-            sec->data = malloc(sec->size);
+            sec->data = (uint8_t*)malloc(sec->size);
             fseek(f, shdrs[i].sh_offset, SEEK_SET);
             fread(sec->data, 1, sec->size, f);
         }
     }
 
     out->symbolCount = raw_symbol_count;
-    out->symbols = malloc(raw_symbol_count * sizeof(ObjSymbol));
+    out->symbols = (ObjSymbol*)malloc(raw_symbol_count * sizeof(ObjSymbol));
 
     for (uint32_t i = 0; i < raw_symbol_count; i++) {
         RawElfSymbol *rs = &raw_symbols[i];
@@ -198,7 +198,7 @@ int read_object_file(const char *path, ObjectFile *out) {
         }
 
         uint32_t count = shdrs[i].sh_size / sizeof(RawElfRela);
-        RawElfRela *raw_relocs = malloc(shdrs[i].sh_size);
+        RawElfRela *raw_relocs = (RawElfRela*)malloc(shdrs[i].sh_size);
         fseek(f, shdrs[i].sh_offset, SEEK_SET);
         fread(raw_relocs, sizeof(RawElfRela), count, f);
 
