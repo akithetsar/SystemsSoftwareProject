@@ -11,7 +11,7 @@ void cpu_init(CPU *cpu) {
     cpu->cause   = 0;
     cpu->halted  = 0;
 
-    cpu->ram = calloc(1, RAM_SIZE);
+    cpu->ram = (uint8_t*)calloc(1, RAM_SIZE);
 
     if (!cpu->ram) {
         fprintf(stderr, "Failed to allocate RAM\n");
