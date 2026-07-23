@@ -1,5 +1,6 @@
 #include "../include/linker.h"
 #include "../include/object_reader.h"
+#include "../include/section_placer.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -119,6 +120,12 @@ void print_linker_config(const LinkerConfig *cfg) {
 
 
 
+#include "../include/linker.h"
+#include "../include/object_reader.h"
+#include "../include/section_placer.h"
+#include <stdio.h>
+#include <stdlib.h>
+
 int main(int argc, char **argv) {
     LinkerConfig cfg;
 
@@ -128,13 +135,40 @@ int main(int argc, char **argv) {
 
     print_linker_config(&cfg);
 
-    if (argc < 2) { fprintf(stderr, "usage: %s <file.o>\n", argv[0]); return 1; }
+    /* read every input object file */
+    ObjectFile *objs = calloc(cfg.inputCount, sizeof(ObjectFile));
 
-    ObjectFile obj;
-    if (read_object_file(argv[1], &obj) != 0) return 1;
-    printf("testMain\n");
-    print_object_file(&obj);
-    free_object_file(&obj);
+    for (int i = 0; i < cfg.inputCount; i++) {
+        if (read_object_file(cfg.input_files[i], &objs[i]) != 0) {
+            fprintf(stderr, "linker: failed to read '%s'\n", cfg.input_files[i]);
+            return 1;
+        }
+    }
+
+    for (int i = 0; i < cfg.inputCount; i++) {
+        print_object_file(&objs[i]);
+    }
+
+    /* place sections */
+    MergedSection *merged;
+    int mergedCount;
+
+    if (place_sections(objs, cfg.inputCount, cfg.places, cfg.placeCount,
+                        &merged, &mergedCount) != 0) {
+        fprintf(stderr, "linker: section placement failed\n");
+        return 1;
+    }
+
+    print_merged_sections(merged, mergedCount);
+
+    /* TODO: symbol resolution   -- symbol_resolver.c
+       TODO: relocation          -- relocator.c
+       TODO: -hex / -relocatable output -- output_writer.c */
+
+    for (int i = 0; i < cfg.inputCount; i++)
+        free_object_file(&objs[i]);
+    free(objs);
+    free(merged);
+
     return 0;
-
 }
