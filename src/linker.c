@@ -3,6 +3,7 @@
 #include "../include/section_placer.h"
 #include "../include/symbol_resolver.h"
 #include "../include/relocator.h"
+#include "../include/output_writer.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -135,67 +136,75 @@ static void print_resolved_symbols(ObjectFile *objs, int objCount) {
         }
     }
 }
-int main(int argc, char **argv) {
-    LinkerConfig cfg;
+// int main(int argc, char **argv) {
+//     LinkerConfig cfg;
 
-    if (parse_args(argc, argv, &cfg) != 0) {
-        return 1;
-    }
+//     if (parse_args(argc, argv, &cfg) != 0) {
+//         return 1;
+//     }
 
-    print_linker_config(&cfg);
+//     print_linker_config(&cfg);
 
-    /* read every input object file */
-    ObjectFile *objs = (ObjectFile*)calloc(cfg.inputCount, sizeof(ObjectFile));
+//     /* read every input object file */
+//     ObjectFile *objs = (ObjectFile*)calloc(cfg.inputCount, sizeof(ObjectFile));
 
-    for (int i = 0; i < cfg.inputCount; i++) {
-        if (read_object_file(cfg.input_files[i], &objs[i]) != 0) {
-            fprintf(stderr, "linker: failed to read '%s'\n", cfg.input_files[i]);
-            return 1;
-        }
-    }
+//     for (int i = 0; i < cfg.inputCount; i++) {
+//         if (read_object_file(cfg.input_files[i], &objs[i]) != 0) {
+//             fprintf(stderr, "linker: failed to read '%s'\n", cfg.input_files[i]);
+//             return 1;
+//         }
+//     }
 
-    for (int i = 0; i < cfg.inputCount; i++) {
-        print_object_file(&objs[i]);
-    }
+//     for (int i = 0; i < cfg.inputCount; i++) {
+//         print_object_file(&objs[i]);
+//     }
 
-    /* place sections */
-    MergedSection *merged;
-    int mergedCount;
+//     /* place sections */
+//     MergedSection *merged;
+//     int mergedCount;
 
-    if (place_sections(objs, cfg.inputCount, cfg.places, cfg.placeCount,
-                        &merged, &mergedCount) != 0) {
-        fprintf(stderr, "linker: section placement failed\n");
-        return 1;
-    }
+//     if (place_sections(objs, cfg.inputCount, cfg.places, cfg.placeCount,
+//                         &merged, &mergedCount) != 0) {
+//         fprintf(stderr, "linker: section placement failed\n");
+//         return 1;
+//     }
 
-    print_merged_sections(merged, mergedCount);
-    if(resolve_symbols(objs, cfg.inputCount) != 0) {
-        fprintf(stderr, "linker: symbol resolution failed\n");
-        free(merged);
-        for (int i = 0; i < cfg.inputCount; i++)
-            free_object_file(&objs[i]);
-        free(objs);
-        return 1;
-    }
-    print_resolved_symbols(objs, cfg.inputCount);
-    if (apply_relocations(objs, cfg.inputCount) != 0) {
-        fprintf(stderr, "linker: relocation failed\n");
-        free(merged);
-        for (int i = 0; i < cfg.inputCount; i++)
-            free_object_file(&objs[i]);
-        free(objs);
-        return 1;
-    }
-    print_resolved_symbols(objs, cfg.inputCount);
+//     print_merged_sections(merged, mergedCount);
+//     if(resolve_symbols(objs, cfg.inputCount) != 0) {
+//         fprintf(stderr, "linker: symbol resolution failed\n");
+//         free(merged);
+//         for (int i = 0; i < cfg.inputCount; i++)
+//             free_object_file(&objs[i]);
+//         free(objs);
+//         return 1;
+//     }
+//     print_resolved_symbols(objs, cfg.inputCount);
+//     if (apply_relocations(objs, cfg.inputCount) != 0) {
+//         fprintf(stderr, "linker: relocation failed\n");
+//         free(merged);
+//         for (int i = 0; i < cfg.inputCount; i++)
+//             free_object_file(&objs[i]);
+//         free(objs);
+//         return 1;
+//     }
+//     print_resolved_symbols(objs, cfg.inputCount);
 
-    /* TODO: symbol resolution   -- symbol_resolver.c
-       TODO: relocation          -- relocator.c
-       TODO: -hex / -relocatable output -- output_writer.c */
+//     if (cfg.hex) {
+//         if (write_hex_output(cfg.output_file, objs, cfg.inputCount) != 0) {
+//             free(merged);
+//             for (int i = 0; i < cfg.inputCount; i++)
+//                 free_object_file(&objs[i]);
+//             free(objs);
+//             return 1;
+//         }
+//     } else {
+//         /* TODO: -relocatable output -- output_writer.c */
+//     }
 
-    for (int i = 0; i < cfg.inputCount; i++)
-        free_object_file(&objs[i]);
-    free(objs);
-    free(merged);
+//     for (int i = 0; i < cfg.inputCount; i++)
+//         free_object_file(&objs[i]);
+//     free(objs);
+//     free(merged);
 
-    return 0;
-}
+//     return 0;
+// }

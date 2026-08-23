@@ -1663,7 +1663,7 @@ yyreduce:
             else if((yyvsp[0].item).kind == ITEM_LITERAL)
             {
                 int32_t d = (yyvsp[0].item).value;
-
+                
                 if(d >= -2048 && d <= 2047)
                 {
                     uint32_t instr =
