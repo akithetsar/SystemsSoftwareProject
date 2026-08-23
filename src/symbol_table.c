@@ -184,49 +184,24 @@ void emit_symbol_word(char* sym_name){
 
 void emit_large_literal_load(int32_t literal, uint8_t dst_reg)
 {
-    char name[64];
-    sprintf(name, "__lit_%d", literal);
-
-    Symbol *sym = get_symbol(name);
-
-    if(sym == NULL)
-    {
-        add_symbol(
-            name,
-            (uint32_t)literal,
-            litSection+1,
-            SYM_NOTYP,
-            SYM_LOC,
-            1
-        );
-
-        sym = get_symbol(name);
-    }
-
-    LiteralPoolEntry *entry =
-        get_or_create_literal_pool_entry(sym);
-
+    /* A plain numeric constant that doesn't fit in 12 bits. It's not the
+     * address of anything, so it goes straight into the pool as raw data
+     * with no relocation attached - its value never changes. */
     uint32_t instr =
         form_load_instruction(
             LOAD_GPR_FROM_MEM_INDEXED,
             dst_reg,
-            15,     
+            15,
             0,
-            entry->offset   // placeholder
+            0   // placeholder, patched once the literal pool flushes
         );
 
     uint32_t offset =
         sectionDefinitions[currentSection].length;
 
     section_emit_word(instr);
-    printf("%08X\n", instr);
-    add_relocation(
-        currentSection,
-        offset,
-        sym->num,
-        JMP_LIT,
-        entry->offset
-    );
+
+    literal_pool_use_const(currentSection, (uint32_t)literal, offset);
 }
 
 void emit_symbol_address_load(char *sym_name, uint8_t dst_reg)
@@ -248,38 +223,19 @@ void emit_symbol_address_load(char *sym_name, uint8_t dst_reg)
     }
 
     /*
-     * If symbol already defined and value fits 12 bits,
-     * use immediate load directly.
+     * The symbol's final, linked address is never known at assembly
+     * time (it depends on where the linker ends up placing its section),
+     * so - regardless of how small its current, pre-link value looks -
+     * this always has to go through the literal pool with a relocation
+     * that the linker fills in once the real address is known.
      */
-    if(sym->defined &&
-       sym->value <= 2047)
-    {
-        uint32_t instr =
-            form_load_instruction(
-                LOAD_GPR_FROM_GPR_PLUS_D,
-                dst_reg,
-                0,
-                0,
-                sym->value
-            );
-
-        section_emit_word(instr);
-        return;
-    }
-
-    /*
-     * Otherwise go through literal pool.
-     */
-    LiteralPoolEntry *entry =
-        get_or_create_literal_pool_entry(sym);
-
     uint32_t instr =
         form_load_instruction(
             LOAD_GPR_FROM_MEM_INDEXED,
             dst_reg,
             15,   // pc
             0,
-            entry->offset   // placeholder
+            0   // placeholder, patched once the literal pool flushes
         );
 
     uint32_t offset =
@@ -287,13 +243,7 @@ void emit_symbol_address_load(char *sym_name, uint8_t dst_reg)
 
     section_emit_word(instr);
 
-    add_relocation(
-        currentSection,
-        offset,
-        sym->num,
-        JMP_LIT,
-        entry->offset
-    );
+    literal_pool_use_symbol(currentSection, sym->num, offset);
 }
 
 const char* symbol_type_to_string(SymbolType type)

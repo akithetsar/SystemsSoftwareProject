@@ -124,16 +124,16 @@ int can_use_pcrel(Symbol *sym)
 
 void emit_jmp_literal(Symbol *sym, uint8_t b, uint8_t c, uint8_t mode)
 {
-    LiteralPoolEntry *entry =
-        get_or_create_literal_pool_entry(sym);
-
+    /* Displacement isn't known yet - the literal pool entry backing this
+     * symbol may not be flushed for a while. Emit with Disp=0 and let the
+     * literal pool patch it in-place once it's flushed. */
     uint32_t instr =
         form_jump_instruction(
             mode,
             15,
             b,
             c,
-            entry->offset   // placeholder, NOT real displacement
+            0   // placeholder, patched once the literal pool flushes
         );
 
     uint32_t offset =
@@ -141,13 +141,7 @@ void emit_jmp_literal(Symbol *sym, uint8_t b, uint8_t c, uint8_t mode)
 
     section_emit_word(instr);
 
-    add_relocation(
-        currentSection,
-        offset,
-        entry->symbolIndex,
-        JMP_LIT,
-        entry->offset
-    );
+    literal_pool_use_symbol(currentSection, sym->num, offset);
 }
 
 void emit_jmp_pcrel(Symbol *sym, uint8_t b, uint8_t c, uint8_t mode)
@@ -207,15 +201,12 @@ uint32_t form_call_instruction(
 
 void emit_call_literal(Symbol *sym)
 {
-    LiteralPoolEntry *entry =
-        get_or_create_literal_pool_entry(sym);
-
     uint32_t instr =
         form_call_instruction(
             CALL_MEM,
             15,
             0,
-            entry->offset   // placeholder, NOT real displacement
+            0   // placeholder, patched once the literal pool flushes
         );
 
     uint32_t offset =
@@ -223,13 +214,7 @@ void emit_call_literal(Symbol *sym)
 
     section_emit_word(instr);
 
-    add_relocation(
-        currentSection,
-        offset,
-        entry->symbolIndex,
-        JMP_LIT,
-        entry->offset
-    );
+    literal_pool_use_symbol(currentSection, sym->num, offset);
 }
 
 void emit_call_pcrel(Symbol *sym)

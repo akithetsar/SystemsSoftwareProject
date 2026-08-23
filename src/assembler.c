@@ -50,7 +50,6 @@ int main(int argc, char **argv)
     init_sections();
     init_symbol_table();
     init_literal_pool();
-    litSection = create_section(".lit");
     printf("Assembler initialized\n");
 
     int code = yyparse();
@@ -59,6 +58,11 @@ int main(int argc, char **argv)
         return 1;
     }
     printf("Parsing finished with code: %i\n", code);
+
+    /* Flush any literal pools that are still pending (i.e. the section
+     * they belong to never grew enough to trigger an automatic flush). */
+    literal_pool_flush_all();
+
     print_sections_debug();
     print_symbol_table();
     print_relocation_table();

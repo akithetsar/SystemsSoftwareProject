@@ -372,35 +372,35 @@ static void print_state(const CPU *cpu, int cycle) {
            cpu->status, cpu->handler, cpu->cause);
 }
  
-// int main(int argc, char **argv) {
-//     if (argc != 2) {
-//         fprintf(stderr, "Usage: %s <input.hex>\n", argv[0]);
-//         return 1;
-//     }
+int main(int argc, char **argv) {
+    if (argc != 2) {
+        fprintf(stderr, "Usage: %s <input.hex>\n", argv[0]);
+        return 1;
+    }
  
-//     CPU cpu;
-//     cpu_init(&cpu);
+    CPU cpu;
+    cpu_init(&cpu);
  
-//     if (load_hex_file(&cpu, argv[1]) != 0) {
-//         cpu_destroy(&cpu);
-//         return 1;
-//     }
-//     int cycle = 0;
-//     while (!cpu.halted) {
+    if (load_hex_file(&cpu, argv[1]) != 0) {
+        cpu_destroy(&cpu);
+        return 1;
+    }
+    int cycle = 0;
+    while (!cpu.halted) {
         
-//         cpu_step(&cpu);
-//         print_state(&cpu, cycle);
-//         cycle++;
+        cpu_step(&cpu);
+        print_state(&cpu, cycle);
+        cycle++;
         
-//     }
+    }
  
-//     printf("-----------------------------------------------------------------\n");
-//     printf("Emulated processor executed halt instruction\n");
-//     printf("Emulated processor state:\n");
-//     for (int i = 0; i < NUM_GPR; i++) {
-//         printf("r%d=0x%08X%s", i, cpu.gpr[i], ((i + 1) % 4 == 0) ? "\n" : " ");
-//     }
+    printf("-----------------------------------------------------------------\n");
+    printf("Emulated processor executed halt instruction\n");
+    printf("Emulated processor state:\n");
+    for (int i = 0; i < NUM_GPR; i++) {
+        printf("r%d=0x%08X%s", i, cpu.gpr[i], ((i + 1) % 4 == 0) ? "\n" : " ");
+    }
  
-//     cpu_destroy(&cpu);
-//     return 0;
-// }
+    cpu_destroy(&cpu);
+    return 0;
+}

@@ -62,6 +62,8 @@ void section_emit_byte(uint8_t byte) {
     sec->data = (uint8_t*)realloc(sec->data, sec->length + 1);
     sec->data[sec->length] = byte;
     sec->length++;
+
+    literal_pool_after_section_grow(currentSection);
 }
 
 uint8_t get_section_byte(int section, uint32_t address)
@@ -117,6 +119,8 @@ void section_emit_word(uint32_t value)
     sec->data[sec->length + 3] = (uint8_t)((value >> 24) & 0xFF);
 
     sec->length += 4;
+
+    literal_pool_after_section_grow(currentSection);
 }
 
 uint32_t get_section_word(int section, uint32_t address)
